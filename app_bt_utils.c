@@ -122,7 +122,7 @@ const char *get_bt_event_name(wiced_bt_management_evt_t event)
 #endif
     }
 
-    return NULL;
+    return "UNKNOWN_EVENT";
 }
 
 /*******************************************************************************
@@ -155,7 +155,7 @@ const char *get_bt_advert_mode_name(wiced_bt_ble_advert_mode_t mode)
     CASE_RETURN_STR(BTM_BLE_ADVERT_DISCOVERABLE_LOW)
     }
 
-    return NULL;
+    return "UNKNOWN_MODE";
 }
 
 /*******************************************************************************
@@ -187,7 +187,7 @@ const char *get_bt_gatt_disconn_reason_name(wiced_bt_gatt_disconn_reason_t reaso
     CASE_RETURN_STR(GATT_CONN_CANCEL)
     }
 
-    return NULL;
+    return "UNKNOWN_REASON";
 }
 
 /*******************************************************************************
@@ -249,7 +249,7 @@ const char *get_bt_gatt_status_name(wiced_bt_gatt_status_t status)
     CASE_RETURN_STR(WICED_BT_GATT_OUT_OF_RANGE)
     }
 
-    return NULL;
+    return "UNKNOWN_STATUS";
 }
 
 

@@ -41,18 +41,21 @@
 /*******************************************************************************
 *        Header Files
 *******************************************************************************/
-#include "app_bt_cfg.h"
+#include <app_platform_cfg.h>
 #include "wiced_bt_stack.h"
 #include "cybsp.h"
 #include "cy_retarget_io.h"
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
+#include <timers.h>
 #include <string.h>
 #include "cybt_platform_trace.h"
 #include "wiced_memory.h"
 #include "cyhal.h"
 #include "stdio.h"
+#include "cycfg_bt_settings.h"
+#include "cycfg_gap.h"
 #include "cycfg_gatt_db.h"
 #include "wiced_bt_dev.h"
 #include "app_bt_utils.h"
@@ -106,17 +109,17 @@ typedef enum
 *        Variable Definitions
 *******************************************************************************/
 static cyhal_pwm_t               adv_led_pwm;
-static cy_timer_t                batt_level_timer;
+static TimerHandle_t             batt_level_timer_h;
 static uint16_t                  bt_connection_id = 0;
 static app_bt_adv_conn_mode_t    app_bt_adv_conn_state = APP_BT_ADV_OFF_CONN_OFF;
+volatile int uxTopUsedPriority;
 
 /*******************************************************************************
 *        Function Prototypes
 *******************************************************************************/
-static void                   batt_level_timer_cb            (cy_timer_callback_arg_t cb_params);
+static void                   batt_level_timer_cb            (TimerHandle_t cb_params);
 static void                   adv_led_update                 (void);
 static void                   ble_app_init                   (void);
-static void                   ble_app_set_advertisement_data (void);
 static void                   batt_level_init                (void);
 
 /* GATT Event Callback Functions */
@@ -140,7 +143,7 @@ static wiced_bt_dev_status_t  app_bt_management_callback     (wiced_bt_managemen
 int main()
 {
     cy_rslt_t result ;
-
+    uxTopUsedPriority = configMAX_PRIORITIES - 1;
     /* Initialize the board support package */
     result = cybsp_init();
     if (CY_RSLT_SUCCESS != result)
@@ -208,6 +211,8 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event, wiced
 
             if (WICED_BT_SUCCESS == p_event_data->enabled.status)
             {
+                /* Initialize the application */
+                wiced_bt_set_local_bdaddr((uint8_t *)cy_bt_device_address, BLE_ADDR_PUBLIC);
                 /* Bluetooth is enabled */
                 wiced_bt_dev_read_local_addr(bda);
                 printf("Local Bluetooth Address: ");
@@ -295,10 +300,10 @@ static void ble_app_init(void)
     }
 
     /* Initialize the timer used Battery Level */
-    rslt = cy_rtos_init_timer(&batt_level_timer, CY_TIMER_TYPE_PERIODIC, batt_level_timer_cb , 0);
+    batt_level_timer_h = xTimerCreate("Battery Timer", BATTERY_LEVEL_UPDATE_MS, pdTRUE, NULL , batt_level_timer_cb);
 
     /* Timer init failed. Stop program execution */
-    if (CY_RSLT_SUCCESS !=  rslt)
+    if (NULL ==  batt_level_timer_h)
     {
         printf("Battery Level Timer Initialization has failed! \n");
         CY_ASSERT(0);
@@ -308,7 +313,7 @@ static void ble_app_init(void)
     wiced_bt_set_pairable_mode(WICED_FALSE, 0);
 
     /* Set Advertisement Data */
-    ble_app_set_advertisement_data();
+    wiced_bt_ble_set_raw_advertisement_data(CY_BT_ADV_PACKET_DATA_SIZE, cy_bt_adv_packet_data);
 
     /* Register with BT stack to receive GATT callback */
     status = wiced_bt_gatt_register(ble_app_gatt_event_handler);
@@ -369,42 +374,6 @@ static wiced_bt_gatt_status_t ble_app_gatt_event_handler(wiced_bt_gatt_evt_t eve
     }
 
     return status;
-}
-
-/**************************************************************************************************
-* Function Name: ble_app_set_advertisement_data()
-***************************************************************************************************
-* Summary:
-*   This function configures the advertisement packet data
-*
-**************************************************************************************************/
-static void ble_app_set_advertisement_data(void)
-{
-    wiced_bt_ble_advert_elem_t adv_elem[3] = { 0 };
-    uint8_t adv_flag = BTM_BLE_GENERAL_DISCOVERABLE_FLAG | BTM_BLE_BREDR_NOT_SUPPORTED;
-    uint8_t adv_appearance[] = { BIT16_TO_8( APPEARANCE_GENERIC_KEYRING ) };
-    uint8_t num_elem = 0;
-
-    /* Advertisement Element for Flags */
-    adv_elem[num_elem].advert_type = BTM_BLE_ADVERT_TYPE_FLAG;
-    adv_elem[num_elem].len = sizeof(uint8_t);
-    adv_elem[num_elem].p_data = &adv_flag;
-    num_elem++;
-
-    /* Advertisement Element for Name */
-    adv_elem[num_elem].advert_type = BTM_BLE_ADVERT_TYPE_NAME_COMPLETE;
-    adv_elem[num_elem].len = app_gap_device_name_len;
-    adv_elem[num_elem].p_data = app_gap_device_name;
-    num_elem++;
-
-    /* Advertisement Element for Appearance */
-    adv_elem[num_elem].advert_type = BTM_BLE_ADVERT_TYPE_APPEARANCE;
-    adv_elem[num_elem].len = sizeof(adv_appearance);
-    adv_elem[num_elem].p_data = adv_appearance;
-    num_elem++;
-
-    /* Set Raw Advertisement Data */
-    wiced_bt_ble_set_raw_advertisement_data(num_elem, adv_elem);
 }
 
 /**************************************************************************************************
@@ -647,9 +616,7 @@ static wiced_bt_gatt_status_t ble_app_server_callback(uint16_t conn_id, wiced_bt
 *******************************************************************************/
 static void batt_level_init(void)
 {
-    cy_rslt_t rslt = CY_RSLT_SUCCESS;
-    rslt = cy_rtos_start_timer(&batt_level_timer, BATTERY_LEVEL_UPDATE_MS);
-    if (CY_RSLT_SUCCESS != rslt)
+    if (pdPASS != xTimerStart(batt_level_timer_h, 0u))
     {
         printf("Failed to Start Battery level timer!\n");
         CY_ASSERT(0);
@@ -731,7 +698,7 @@ static void adv_led_update(void)
 *   None
 *
 *******************************************************************************/
-static void batt_level_timer_cb(cy_timer_callback_arg_t cb_params)
+static void batt_level_timer_cb(TimerHandle_t cb_params)
 {
 
     /* Battery level is read from gatt db and is reduced by 2 percent
