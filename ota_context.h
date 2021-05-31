@@ -1,9 +1,7 @@
 /******************************************************************************
-* File Name:   util_functions.h
+* File Name:   ota_context.h
 *
-* Description: This file consists of the utility functions that will help
-*              debugging and developing the applications easier with much
-*              more meaningful information.
+* Description: Definitions and data structures for the OTA example application
 *
 * Related Document: See Readme.md
 *
@@ -39,34 +37,53 @@
 * of such system or application assumes all risk of such use and in doing
 * so agrees to indemnify Cypress against all liability.
 *******************************************************************************/
+#ifndef OTA_CONTEXT_H_
+#define OTA_CONTEXT_H_
 
-#ifndef __APP_BT_UTILS_H__
-#define __APP_BT_UTILS_H__
-
-/******************************************************************************
- *                                INCLUDES
- ******************************************************************************/
+#include "cy_ota_api.h"
+#include "wiced_bt_types.h"
 #include "wiced_bt_dev.h"
 #include "wiced_bt_gatt.h"
-#include <stdio.h>
+#include "wiced_bt_ble.h"
 
-/******************************************************************************
- *                                Constants
- ******************************************************************************/
-#define CASE_RETURN_STR(enum_val)          case enum_val: return #enum_val;
+/******************************************************
+ *                     Macros
+ ******************************************************/
 
-#define FROM_BIT16_TO_8(val)            ((uint8_t)((val) >> 8 ))
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
-/****************************************************************************
- *                              FUNCTION DECLARATIONS
- ***************************************************************************/
-void print_bd_address(wiced_bt_device_address_t bdadr);
-const char *get_bt_event_name(wiced_bt_management_evt_t event);
-const char *get_bt_advert_mode_name(wiced_bt_ble_advert_mode_t mode);
-const char *get_bt_gatt_disconn_reason_name(wiced_bt_gatt_disconn_reason_t reason);
-const char *get_bt_gatt_status_name(wiced_bt_gatt_status_t status);
-
-#endif      /*__APP_BT_UTILS_H__ */
+#define OTA_APP_TAG_VALID               (0x51EDBA15)
+#define OTA_APP_TAG_INVALID             (0xDEADBEEF)
 
 
-/* [] END OF FILE */
+/******************************************************
+ *            OTA example app type definitions
+ ******************************************************/
+
+typedef struct
+{
+    uint32_t tag;
+
+    cy_ota_context_ptr      ota_context;
+    cy_ota_connection_t     connection_type;
+
+    /* Reboot when OTA is complete */
+    uint8_t                 reboot_at_end;  /* 0 = do NOT reboot, 1 = reboot */
+
+    uint16_t                    bt_conn_id;                 /* Host BT Connection ID */
+    uint8_t                     bt_peer_addr[BD_ADDR_LEN];  /* Host BT address */
+    wiced_bt_ble_conn_params_t  bt_conn_params;             /* BT connection parameters */
+    uint16_t                    bt_ota_config_descriptor;       /* BT OTA configuration descriptor to determine if Device sends Notification/Indication */
+
+} app_context_t;
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+
+cy_rslt_t              app_bt_ota_init                        (app_context_t *ota);
+void                   app_bt_initialize_default_values       (void);
+
+#endif /* #define OTA_CONTEXT_H_ */
