@@ -7,15 +7,15 @@
 #
 ################################################################################
 # \copyright
-# Copyright 2018-2020 Cypress Semiconductor Corporation
+# Copyright 2018-2021, Cypress Semiconductor Corporation (an Infineon company)
 # SPDX-License-Identifier: Apache-2.0
-#
+# 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#
+# 
 #     http://www.apache.org/licenses/LICENSE-2.0
-#
+# 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,9 +31,9 @@
 -include ./libs/mtb.mk
 
 # Target board/hardware (BSP).
-# To change the target, it is recommended to use the Library manager 
-# ('make modlibs' from command line), which will also update Eclipse IDE launch 
-# configurations. If TARGET is manually edited, ensure TARGET_<BSP>.mtb with a 
+# To change the target, it is recommended to use the Library manager
+# ('make modlibs' from command line), which will also update Eclipse IDE launch
+# configurations. If TARGET is manually edited, ensure TARGET_<BSP>.mtb with a
 # valid URL exists in the application, run 'make getlibs' to fetch BSP contents
 # and update or regenerate launch configurations for your IDE.
 TARGET=CY8CKIT-062S2-43012
@@ -45,8 +45,8 @@ TARGET_UNDERSCORE=$(subst -,_,$(TARGET))
 CORE?=CM4
 
 # Name of application (used to derive name of final linked file).
-# 
-# If APPNAME is edited, ensure to update or regenerate launch 
+#
+# If APPNAME is edited, ensure to update or regenerate launch
 # configurations for your IDE.
 APPNAME=mtb-example-anycloud-ble-battery-server
 
@@ -64,8 +64,8 @@ TOOLCHAIN=GCC_ARM
 # Debug   -- build with minimal optimizations, focus on debugging.
 # Release -- build with full optimizations
 # Custom -- build with custom configuration, set the optimization flag in CFLAGS
-# 
-# If CONFIG is manually edited, ensure to update or regenerate launch configurations 
+#
+# If CONFIG is manually edited, ensure to update or regenerate launch configurations
 # for your IDE.
 CONFIG=Debug
 
@@ -223,7 +223,7 @@ ifeq ($(OTA_SUPPORT),1)
     LDFLAGS+="-Wl,--defsym,MCUBOOT_HEADER_SIZE=$(MCUBOOT_HEADER_SIZE),--defsym,MCUBOOT_BOOTLOADER_SIZE=$(MCUBOOT_BOOTLOADER_SIZE),--defsym,CY_BOOT_PRIMARY_1_SIZE=$(CY_BOOT_PRIMARY_1_SIZE)"
     else
     ifeq ($(TOOLCHAIN),IAR)
-    CY_ELF_TO_HEX=$(CY_CROSSPATH)/bin/ielftool
+    CY_ELF_TO_HEX="$(CY_CROSSPATH)/bin/ielftool"
     CY_ELF_TO_HEX_OPTIONS="--ihex"
     CY_ELF_TO_HEX_FILE_ORDER="elf_first"
     CY_TOOLCHAIN=$(TOOLCHAIN)
@@ -231,7 +231,7 @@ ifeq ($(OTA_SUPPORT),1)
     LDFLAGS+=--config_def MCUBOOT_HEADER_SIZE=$(MCUBOOT_HEADER_SIZE) --config_def MCUBOOT_BOOTLOADER_SIZE=$(MCUBOOT_BOOTLOADER_SIZE) --config_def CY_BOOT_PRIMARY_1_SIZE=$(CY_BOOT_PRIMARY_1_SIZE)
     else
     ifeq ($(TOOLCHAIN),ARM)
-    CY_ELF_TO_HEX=$(CY_CROSSPATH)/bin/fromelf.exe
+    CY_ELF_TO_HEX=$(CY_CROSSPATH)/bin/fromelf
     CY_ELF_TO_HEX_OPTIONS="--i32 --output"
     CY_ELF_TO_HEX_FILE_ORDER="hex_first"
     CY_TOOLCHAIN=GCC
@@ -294,12 +294,12 @@ ifeq ($(OTA_SUPPORT),1)
         # signing scripts and keys from MCUBoot
         # Defaults for 062 non-secure boards
         SIGN_SCRIPT_FILE_PATH=$(SEARCH_anycloud-ota)/scripts/sign_script.bash
-        IMGTOOL_SCRIPT_NAME=imgtool_v1.5.0/imgtool.py
+        IMGTOOL_SCRIPT_NAME=imgtool_v1.7.0/imgtool.py
         MCUBOOT_SCRIPT_FILE_DIR=$(MCUBOOT_DIR)/scripts
         MCUBOOT_KEY_DIR=$(MCUBOOT_DIR)/keys
         MCUBOOT_KEY_FILE=$(MCUBOOT_KEY_DIR)/cypress-test-ec-p256.pem
         IMGTOOL_COMMAND_ARG=create
-        CY_SIGNING_KEY_ARG=" "
+        CY_SIGNING_KEY_ARG=""
 
         POSTBUILD=$(SIGN_SCRIPT_FILE_PATH) $(OUTPUT_FILE_PATH) $(APPNAME) $(CY_PYTHON_PATH)\
                   $(CY_ELF_TO_HEX) $(CY_ELF_TO_HEX_OPTIONS) $(CY_ELF_TO_HEX_FILE_ORDER)\
@@ -335,9 +335,9 @@ CY_APP_PATH=
 
 # Relative path to the shared repo location.
 #
-# All .mtb files have the format, <URI>#<COMMIT>#<LOCATION>. If the <LOCATION> field 
-# begins with $$ASSET_REPO$$, then the repo is deposited in the path specified by 
-# the CY_GETLIBS_SHARED_PATH variable. The default location is one directory level 
+# All .mtb files have the format, <URI>#<COMMIT>#<LOCATION>. If the <LOCATION> field
+# begins with $$ASSET_REPO$$, then the repo is deposited in the path specified by
+# the CY_GETLIBS_SHARED_PATH variable. The default location is one directory level
 # above the current app directory.
 # This is used with CY_GETLIBS_SHARED_NAME variable, which specifies the directory name.
 CY_GETLIBS_SHARED_PATH=../

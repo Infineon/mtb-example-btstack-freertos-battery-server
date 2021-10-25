@@ -1,4 +1,4 @@
-/*
+/*********************************************************************
  * Copyright 2021, Cypress Semiconductor Corporation (an Infineon company)
  * SPDX-License-Identifier: Apache-2.0
  * 
