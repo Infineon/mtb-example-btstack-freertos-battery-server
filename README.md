@@ -6,7 +6,7 @@ MCUboot is a "secure" bootloader for 32-bit MCUs. See the [README](https://githu
 
 The OTA feature is enabled by the *Over-the-air update middleware library*. See the [anycloud-ota](https://github.com/Infineon/anycloud-ota) middleware repository on Github for details.
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzAyOTkiLCJTcGVjIE51bWJlciI6IjAwMi0zMDI5OSIsIkRvYyBUaXRsZSI6IkJhdHRlcnkgc2VydmVyIiwicmlkIjoiYW1tbCIsIkRvYyB2ZXJzaW9uIjoiMy4xLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IlBTT0MifQ==)
+[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzAyOTkiLCJTcGVjIE51bWJlciI6IjAwMi0zMDI5OSIsIkRvYyBUaXRsZSI6IkJhdHRlcnkgc2VydmVyIiwicmlkIjoiYW1tbCIsIkRvYyB2ZXJzaW9uIjoiMy4yLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
 
 ## Requirements
 
@@ -449,6 +449,8 @@ Document title: *CE230299* - *Battery server*
  2.0.0   | Major update to support ModusToolbox software v2.2 <br> This version is not backward compatible with ModusToolbox software v2.1
  3.0.0   | Added OTA support, Updated to support  BTStack 3.0
  3.1.0   | Quality of life changes <br> Added support for CY8CEVAL-062S2-LAI-4373M2 kit
+ 3.2.0   | Update to support new dependency structure
+
 
 <br>
 

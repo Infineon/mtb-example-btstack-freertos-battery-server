@@ -7,7 +7,7 @@
 #
 ################################################################################
 # \copyright
-# Copyright 2018-2021, Cypress Semiconductor Corporation (an Infineon company)
+# Copyright 2018-2022, Cypress Semiconductor Corporation (an Infineon company)
 # SPDX-License-Identifier: Apache-2.0
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -164,18 +164,19 @@ ifeq ($(OTA_SUPPORT),1)
     # OTA / MCUBoot defines
 
     # These libs are only needed for WiFi transports
-    CY_IGNORE+=libs/aws-iot-device-sdk-embedded-C
-    CY_IGNORE+=libs/aws-iot-device-sdk-port
-    CY_IGNORE+=libs/http-client
-    CY_IGNORE+=libs/mqtt
-    CY_IGNORE+=libs/secure-sockets
-    CY_IGNORE+=libs/wifi-connection-manager
-    CY_IGNORE+=libs/lwip
-    CY_IGNORE+=libs/mbedtls
-    CY_IGNORE+=libs/wifi-host-driver
-    CY_IGNORE+=libs/wifi-mw-core
-    CY_IGNORE+=libs/whd-bsp-integration
-
+    CY_IGNORE+=$(SEARCH_aws-iot-device-sdk-embedded-C)
+    CY_IGNORE+=$(SEARCH_aws-iot-device-sdk-port)
+    CY_IGNORE+=$(SEARCH_cy-mbedtls-acceleration)
+    CY_IGNORE+=$(SEARCH_http-client)
+    CY_IGNORE+=$(SEARCH_mqtt)
+    CY_IGNORE+=$(SEARCH_secure-sockets)
+    CY_IGNORE+=$(SEARCH_wifi-connection-manager)
+    CY_IGNORE+=$(SEARCH_lwip)
+    CY_IGNORE+=$(SEARCH_mbedtls)
+    CY_IGNORE+=$(SEARCH_wifi-host-driver)
+    CY_IGNORE+=$(SEARCH_wifi-mw-core)
+    CY_IGNORE+=$(SEARCH_whd-bsp-integration)
+    CY_IGNORE+=$(SEARCH_wpa3-external-supplicant)
     # IMPORTANT NOTE: These defines are also used in the building of MCUBOOT
     #                 they must EXACTLY match the values added to
     #                 mcuboot/boot/cypress/MCUBootApp/MCUBootApp.mk
