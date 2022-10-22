@@ -1,4 +1,4 @@
-# Battery server
+# Bluetooth&reg; LE Battery server
 
 This code example demonstrates the implementation of a simple Bluetooth&reg; battery service. The battery service exposes the battery level of the device and comes with support for over-the-air (OTA) update on Bluetooth&reg; Low Energy. A peer app on Windows can be used to push OTA updates to the device. The app downloads and writes the image to the secondary slot. On the next reboot, MCUboot copies the new image over to the primary slot and runs the application. If the new image is not validated in runtime, on the next reboot, MCUboot reverts to the previously validated image.
 
@@ -6,27 +6,28 @@ MCUboot is a "secure" bootloader for 32-bit MCUs. See the [README](https://githu
 
 The OTA feature is enabled by the *Over-the-air update middleware library*. See the [anycloud-ota](https://github.com/Infineon/anycloud-ota) middleware repository on Github for details.
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzAyOTkiLCJTcGVjIE51bWJlciI6IjAwMi0zMDI5OSIsIkRvYyBUaXRsZSI6IkJhdHRlcnkgc2VydmVyIiwicmlkIjoiYW1tbCIsIkRvYyB2ZXJzaW9uIjoiMy4yLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
+[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzAyOTkiLCJTcGVjIE51bWJlciI6IjAwMi0zMDI5OSIsIkRvYyBUaXRsZSI6IkJsdWV0b290aCZyZWc7IExFIEJhdHRlcnkgc2VydmVyIiwicmlkIjoiYW1tbCIsIkRvYyB2ZXJzaW9uIjoiNC4wLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
 
 ## Requirements
 
-- [ModusToolbox™ software](https://www.cypress.com/products/modustoolbox-software-environment) v2.3.1
-- Board support package (BSP) minimum required version: 2.0.0
+- [ModusToolbox&trade; software](https://www.infineon.com/modustoolbox) v3.0 or later (tested with v3.0)
+- Board support package (BSP) minimum required version: 4.0.0
 - Programming language: C
-- Associated parts: All [PSoC&trade; 6 MCU](http://www.cypress.com/PSoC6) with [AIROC™ CYW43xxx Wi-Fi & Bluetooth® combo chips](https://www.cypress.com/products/airoc-wi-fi-combos)
+- Associated parts: All [PSoC&trade; 6 MCU](https://www.infineon.com/cms/en/product/microcontroller/32-bit-psoc-arm-cortex-microcontroller/psoc-6-32-bit-arm-cortex-m4-mcu/) with [AIROC™ CYW43xxx Wi-Fi & Bluetooth® combo chips](https://www.infineon.com/cms/en/product/wireless-connectivity/airoc-wi-fi-plus-bluetooth-combos/)
 
 ## Supported toolchains (make variable 'TOOLCHAIN')
 
-- GNU Arm&reg; embedded compiler v9.3.1 (`GCC_ARM`) - Default value of `TOOLCHAIN`
-- Arm&reg; compiler v6.13 (`ARM`)
-- IAR C/C++ compiler v8.42.2 (`IAR`)
-
+- GNU Arm&reg; embedded compiler v10.3.1 (`GCC_ARM`) - Default value of `TOOLCHAIN`
+- Arm&reg; compiler v6.16 (`ARM`)
+- IAR C/C++ compiler v9.30.1 (`IAR`)
 
 ## Supported kits (make variable 'TARGET')
 
-- [PSoC&trade; 62S2 Wi-Fi Bluetooth&reg; pioneer kit](https://www.cypress.com/CY8CKIT-062S2-43012) (`CY8CKIT-062S2-43012`) - Default value of `TARGET`
-- [PSoC&trade; 6 Wi-Fi Bluetooth® prototyping kit](https://www.cypress.com/CY8CPROTO-062-4343W) (`CY8CPROTO-062-4343W`)
-- [PSoC&trade; 62S2 evaluation kit](https://www.cypress.com/CY8CEVAL-062S2) (`CY8CEVAL-062S2-LAI-4373M2`)
+- [PSoC&trade; 62S2 Wi-Fi Bluetooth&reg; pioneer kit](https://www.infineon.com/CY8CKIT-062S2-43012) (`CY8CKIT-062S2-43012`) - Default value of `TARGET`
+- [PSoC&trade; 6 Wi-Fi Bluetooth® prototyping kit](https://www.infineon.com/CY8CPROTO-062-4343W) (`CY8CPROTO-062-4343W`)
+- [PSoC&trade; 62S2 evaluation kit](https://www.infineon.com/CY8CEVAL-062S2) (`CY8CEVAL-062S2-LAI-4373M2`)
+- [PSoC&trade; 62S3 Wi-Fi Bluetooth&reg; prototyping kit](https://www.infineon.com/cms/en/product/evaluation-boards/cy8cproto-062s3-4343w) (`CY8CPROTO-062S3-4343W`)
+- [PSoC&trade; 62S2 evaluation kit](https://www.infineon.com/cms/en/product/evaluation-boards/cy8ceval-062s2) ( `CY8CEVAL-062S2-MUR-43439M2`)
 
 ## Hardware setup
 
@@ -34,11 +35,9 @@ This example uses the kit’s default configuration. See the respective kit guid
 
 ## Software setup
 
-To view the battery level in Battery Service, download and install the CySmart™ app for [iOS](https://itunes.apple.com/us/app/cysmart/id928939093?mt=8) or [Android](https://play.google.com/store/apps/details?id=com.cypress.cysmart&hl=en).
+To view the battery level in Battery Service, download and install the LightBlue&reg; app for iOS or Android.
 
-You can also use the [CySmart host emulation tool](http://www.cypress.com/go/cysmart) Windows PC application if you have access to the [CY5677 CySmart Bluetooth LE 4.2 USB dongle](http://www.cypress.com/documentation/development-kitsboards/cy5677-cysmart-bluetooth-low-energy-ble-42-usb-dongle).
-
-Scan the following QR codes from your mobile phone to download the CySmart app.
+Scan the following QR codes from your mobile phone to download the LightBlue&reg; app.
 
 ![AppQR](./images/qr.png)
 
@@ -51,7 +50,7 @@ For OTA functionality, a peer app is required to push the update. It can be down
 
 ## Structure and overview
 
-This code example is a dual-core project, where the MCUboot bootloader app runs on the CM0+ core and the OTA update app runs on the CM4 core. The OTA update app fetches the new image and places it in the flash memory; the bootloader takes care of updating the existing image with the new image. The [mtb-example-psoc6-mcuboot-basic](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic) code example is the bootloader project used for this purpose.
+This code example is a dual-core project, where the MCUboot bootloader app runs on the CM0+ core and the OTA update app runs on the CM4 core. The OTA update app fetches the new image and places it in the flash memory; the bootloader takes care of updating the existing image with the new image. The [mtb-example-psoc6-mcuboot-basic](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic) code example is the bootloader project used for this purpose. If you are not familiar with the mcuboot we suggest to go through the [mtb-example-psoc6-mcuboot-basic](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic) code example for better understanding.
 
 The bootloader project and this OTA update project should be built and programmed independently. They must be placed separately in the workspace as you would do for any other two independent projects. An example workspace looks like this:
 
@@ -67,70 +66,47 @@ You must first build and program the MCUboot bootloader project into the CM0+ co
 
 ## Building and programming MCUboot
 
-The [mtb-example-psoc6-mcuboot-basic](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic) code example bundles two applications: the bootloader app that runs on CM0+, and the Blinky app that runs on CM4. For this code example, only the bootloader app is required. The root directory of the bootloader app is referred to as *\<bootloader_cm0p>* in this document.
+The [mtb-example-psoc6-mcuboot-basic](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic) code example bundles two applications: the bootloader app that runs on CM0+, and the Blinky app that runs on CM4. For this code example, We will program the *mtb-example-psoc6-mcuboot-basic* bootloader application as we only need the bootloader app. The root directory of the bootloader app is referred to as *\<bootloader_cm0p>* in this document.
 
-1. Import the [mtb-example-psoc6-mcuboot-basic](https://github.com/cypresssemiconductorco/mtb-example-psoc6-mcuboot-basic) code example per the instructions in the [Using the code example](https://github.com/cypresssemiconductorco/mtb-example-psoc6-mcuboot-basic#using-the-code-example) section of its [README](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic/blob/master/README.md).
+1. Import the [mtb-example-psoc6-mcuboot-basic](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic) code example per the instructions in the [Using the code example](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic#using-the-code-example) section of its [README](https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic/blob/master/README.md).
 
-2. The bootloader and OTA applications must have the same understanding of the memory layout. Override the default memory layout by editing the make variables in the *\<bootloader_cm0p>/shared_config.mk* file. For this example, perform the following edits to match the memory layout with the OTA application:
+2. The bootloader and *mtb-example-anycloud-ble-battery-server* applications must have the same understanding of the memory layout.The information is contained inside the flashmaps and both applications need to use the same flashmap. Check the *mtb-example-anycloud-ble-battery-server* makefile for the variable **OTA_FLASH_MAP** to find out the flashmap being used by our application. We need to copy this flashmap present in *<mtb_shared/ota-update/release-vX.X.X/configs/flashmap/>* to the flashmap folder in the bootloader_cm0p project. To understand more about the flashmaps refer to [OTA_FLASH_LAYOUT_README.md](https://github.com/Infineon/ota-update/blob/master/OTA_FLASH_LAYOUT_README.md) in the ota-update middleware. To learn more about the makefile defines(especially **OTA_PLATFORM** and **OTA_FLASH_MAP** ) used by the *ota-update* library and the application refer to *section 3 [*OTA Specific Makefile Defines*](https://github.com/Infineon/ota-update/blob/master/OTA_MAKEFILE_INFO_README.md#3-ota-specific-makefile-defines)*. In case you want to use a different flashmap refer to section *1.3 Target and Flashmap Use* in the ota-update [README.md](https://github.com/Infineon/ota-update/blob/master/README.md) to find out compatible flashmaps for your Kit.
 
-   ```
-   ifeq ($(USE_EXT_FLASH), 1)
-   MCUBOOT_SLOT_SIZE=0x1C0000
-   else
-   MCUBOOT_SLOT_SIZE=0xEE000
-   endif
-   .
-   .
-   .
-   MCUBOOT_SCRATCH_SIZE=0x4000
-   ```
+3. Update the **FLASH_MAP** variable in the makefile *shared_config.mk* in the *\<bootloader_cm0p>* directory to reflect the flashmap that we copied into flashmap directory.
 
-3. Copy the *\<mtb_shared>/mcuboot/\<tag>/boot/cypress/MCUBootApp/config* folder and paste it in the *\<bootloader_cm0p>* folder.
-
-4. Edit the *\<bootloader_cm0p>/config/mcuboot_config/mcuboot_config.h* file and comment out the following defines to skip checking the image signature:
-
-   ```
-   #define MCUBOOT_SIGN_EC256
-   #define NUM_ECC_BYTES (256 / 8)
-   .
-   .
-   .
-   #define MCUBOOT_VALIDATE_PRIMARY_SLOT
-   ```
-
-5. Edit *\<bootloader_cm0p>/app.mk* and replace MCUboot include `$(MCUBOOTAPP_PATH)/config` with `./config`. This gets the build system to find the new copy of the config directory that you pasted in the *\<bootloader_cm0p>* directory, instead of the default one supplied by the library.
-
-6. Edit *\<bootloader_cm0p>/Makefile*:
-
-   1. Set `USE_EXT_FLASH` to `1` to use the external flash to store the secondary image.
-
-   2. Set `SWAP_UPGRADE` to `1` to enable the swap feature of MCUboot.
-
-7. Connect the board to your PC using the provided USB cable through the KitProg3 USB connector.
-
-8. Open a CLI terminal.
+4. Open a CLI terminal.
 
    On Linux and macOS, you can use any terminal application. On Windows, open the "modus-shell" app from the Start menu.
 
-9. On the terminal, navigate to the *\<mtb_shared>/mcuboot/\<tag>/scripts* folder.
+5. On the terminal, navigate to the *\<mtb_shared>/mcuboot/\<tag>/scripts* folder.
 
-10. Run the following command to ensure that the required modules are installed or already present ("Requirement already satisfied:" is printed).
+6. Run the following command to ensure that the required modules are installed or already present ("Requirement already satisfied:" is printed).
 
       ```
       pip install -r requirements.txt
       ```
 
-11. Open a serial terminal emulator and select the KitProg3 COM port. Set the serial port parameters to 8N1 and 115200 baud.
+7. Connect the board to your PC using the provided USB cable through the KitProg3 USB connector.  
 
-12. Build and program the application per the [Step-by-step](https://github.com/cypresssemiconductorco/mtb-example-psoc6-mcuboot-basic#step-by-step-instructions) instructions in its [README]().
-https://github.com/Infineon/mtb-example-psoc6-mcuboot-basic/blob/master/README.md
-    After programming, the bootloader application starts automatically.
+8. From the terminal, navigate to _< application >/bootloader_cm0p_ execute the `make program_proj` command to build and program the application using the default toolchain to the default target. The default toolchain and target are specified in the application's Makefile but you can override those values manually:
+
+      ```
+      make program_proj TOOLCHAIN=<toolchain>
+      ```
+
+      Example:
+      ```
+      make program_proj TOOLCHAIN=GCC_ARM
+      ```
+   </details>
+
+9. After programming, the bootloader starts automatically. Confirm that the UART terminal displays a message as shown:
 
     **Figure 1. Booting with no bootable image**
 
     ![](images/booting_without_bootable_image.png)
 
-**Note:** This example does not demonstrate securely upgrading the image and booting from it using features such as image signing and "Secure Boot". See the [PSoC&trade; 64 line of "secure" MCUs](https://www.cypress.com/psoc64) that offer all those features built around MCUboot.
+**Note:** This example does not demonstrate securely upgrading the image and booting from it using features such as image signing and "Secure Boot". See the [PSoC&trade; 64 line of "secure" MCUs](https://www.infineon.com/cms/en/product/microcontroller/32-bit-psoc-arm-cortex-microcontroller/psoc-6-32-bit-arm-cortex-m4-mcu/psoc-64/) that offer all those features built around MCUboot.
 
 
 ## Using the code example
@@ -139,54 +115,103 @@ Create the project and open it using one of the following:
 
 <details><summary><b>In Eclipse IDE for ModusToolbox&trade; software</b></summary>
 
-
-
-1. Click the **New Application** link in the Quick Panel (or, use **File** > **New** > **ModusToolbox Application**).
+1. Click the **New Application** link in the **Quick Panel** (or, use **File** > **New** > **ModusToolbox&trade; Application**). This launches the [Project Creator](https://www.infineon.com/ModusToolboxProjectCreator) tool.
 
 2. Pick a kit supported by the code example from the list shown in the **Project Creator - Choose Board Support Package (BSP)** dialog.
 
-   When you select a supported kit, the example is reconfigured automatically to work with the kit. To work with a different supported kit later, use the **Library Manager** to choose the BSP for the supported kit. You can use the Library Manager to select or update the BSP and firmware libraries used in this application.
-
-   To access the Library Manager, right-click the application name from the project workspace window in the IDE, and select **ModusToolbox** > **Library Manager**.
+   When you select a supported kit, the example is reconfigured automatically to work with the kit. To work with a different supported kit later, use the [Library Manager](https://www.infineon.com/ModusToolboxLibraryManager) to choose the BSP for the supported kit. You can use the Library Manager to select or update the BSP and firmware libraries used in this application. To access the Library Manager, click the link from the **Quick Panel**.
 
    You can also just start the application creation process again and select a different kit.
 
    If you want to use the application for a kit not listed here, you may need to update the source files. If the kit does not have the required resources, the application may not work.
 
-3. In the **Project Creator - Select Application** dialog, choose the example.
+3. In the **Project Creator - Select Application** dialog, choose the example by enabling the checkbox.
 
-4. Optionally, update the **Application Name** and **Location** fields with the application name and local path where the application is created.
+4. (Optional) Change the suggested **New Application Name**.
 
-5. Click **Create** to complete the application creation process.
+5. The **Application(s) Root Path** defaults to the Eclipse workspace which is usually the desired location for the application. If you want to store the application in a different location, you can change the *Application(s) Root Path* value. Applications that share libraries should be in the same root path.
 
-   For more details, see the Eclipse IDE for ModusToolbox&trade; software user guide: *{ModusToolbox install directory}/ide_{version}/docs/mt_ide_user_guide.pdf*.
+6. Click **Create** to complete the application creation process.
+
+For more details, see the [Eclipse IDE for ModusToolbox&trade; software user guide](https://www.infineon.com/MTBEclipseIDEUserGuide) (locally available at *{ModusToolbox&trade; software install directory}/docs_{version}/mt_ide_user_guide.pdf*).
 
 </details>
 
 <details><summary><b>In command-line interface (CLI)</b></summary>
 
-1. Download and unzip this repository onto your local machine, or clone the repository.
+ModusToolbox&trade; software provides the Project Creator as both a GUI tool and the command line tool, "project-creator-cli". The CLI tool can be used to create applications from a CLI terminal or from within batch files or shell scripts. This tool is available in the *{ModusToolbox&trade; software install directory}/tools_{version}/project-creator/* directory.
 
-2. Open a CLI terminal and navigate to the application folder.
+Use a CLI terminal to invoke the "project-creator-cli" tool. On Windows, use the command line "modus-shell" program provided in the ModusToolbox&trade; software installation instead of a standard Windows command-line application. This shell provides access to all ModusToolbox&trade; software tools. You can access it by typing `modus-shell` in the search box in the Windows menu. In Linux and macOS, you can use any terminal application.
 
-   On Linux and macOS, you can use any terminal application. On Windows, open the "modus-shell" app from the Start menu.
+This tool has the following arguments:
 
-3. Import the required libraries by executing the `make getlibs` command.
+Argument | Description | Required/optional
+---------|-------------|-----------
+`--board-id` | Defined in the `<id>` field of the [BSP](https://github.com/Infineon?q=bsp-manifest&type=&language=&sort=) manifest | Required
+`--app-id`   | Defined in the `<id>` field of the [CE](https://github.com/Infineon?q=ce-manifest&type=&language=&sort=) manifest | Required
+`--target-dir`| Specify the directory in which the application is to be created if you prefer not to use the default current working directory | Optional
+`--user-app-name`| Specify the name of the application if you prefer to have a name other than the example's default name | Optional
+
+<br>
+
+The following example clones the "[mtb-example-anycloud-ble-battery-server](https://github.com/Infineon/mtb-example-anycloud-ble-battery-server)" application with the desired name "BatteryServer" configured for the *CY8CPROTO-062-4343W* BSP into the specified working directory, *C:/mtb_projects*:
+
+   ```
+   project-creator-cli --board-id CY8CPROTO-062-4343W --app-id mtb-example-anycloud-ble-battery-server --user-app-name BatteryServer --target-dir "C:/mtb_projects"
+   ```
+
+**Note:** The project-creator-cli tool uses the `git clone` and `make getlibs` commands to fetch the repository and import the required libraries. For details, see the "Project creator tools" section of the [ModusToolbox&trade; software user guide](https://www.infineon.com/ModusToolboxUserGuide) (locally available at *{ModusToolbox&trade; software install directory}/docs_{version}/mtb_user_guide.pdf*).
+
+To work with a different supported kit later, use the [Library Manager](https://www.infineon.com/ModusToolboxLibraryManager) to choose the BSP for the supported kit. You can invoke the Library Manager GUI tool from the terminal using the `make library-manager` command or use the Library Manager CLI tool "library-manager-cli" to change the BSP.
+
+The "library-manager-cli" tool has the following arguments:
+
+Argument | Description | Required/optional
+---------|-------------|-----------
+`--add-bsp-name` | Name of the BSP that should be added to the application | Required
+`--set-active-bsp` | Name of the BSP that should be as active BSP for the application | Required
+`--add-bsp-version`| Specify the version of the BSP that should be added to the application if you do not wish to use the latest from manifest | Optional
+`--add-bsp-location`| Specify the location of the BSP (local/shared) if you prefer to add the BSP in a shared path | Optional
+
+<br />
+
+Following example adds the CY8CPROTO-062-4343W BSP to the already created application and makes it the active BSP for the app:
+
+   ```
+   library-manager-cli --project "C:/mtb_projects/BatteryServer" --add-bsp-name CY8CPROTO-062-4343W --add-bsp-version "latest-v4.X" --add-bsp-location "local"
+
+   library-manager-cli --project "C:/mtb_projects/BatteryServer" --set-active-bsp APP_CY8CPROTO-062-4343W
+   ```
 
 </details>
 
 <details><summary><b>In third-party IDEs</b></summary>
 
-1. Follow the instructions from the **In command-line interface (CLI)** section to download or clone the repository, and import the libraries using the `make getlibs` command.
+Use one of the following options:
 
-2. Export the application to a supported IDE using the `make <ide>` command.
+- **Use the standalone [Project Creator](https://www.infineon.com/ModusToolboxProjectCreator) tool:**
 
-3. Follow the instructions displayed in the terminal to create or import the application as an IDE project.
+   1. Launch Project Creator from the Windows Start menu or from *{ModusToolbox&trade; software install directory}/tools_{version}/project-creator/project-creator.exe*.
 
-For more details, see the "Exporting to IDEs" section of the ModusToolbox&trade; software user guide: *{ModusToolbox install directory}/ide_{version}/docs/mtb_user_guide.pdf*.
+   2. In the initial **Choose Board Support Package** screen, select the BSP, and click **Next**.
+
+   3. In the **Select Application** screen, select the appropriate IDE from the **Target IDE** drop-down menu.
+
+   4. Click **Create** and follow the instructions printed in the bottom pane to import or open the exported project in the respective IDE.
+
+<br />
+
+- **Use command-line interface (CLI):**
+
+   1. Follow the instructions from the **In command-line interface (CLI)** section to create the application.
+
+   2. Export the application to a supported IDE using the `make <ide>` command.
+
+   3. Follow the instructions displayed in the terminal to create or import the application as an IDE project.
+
+For a list of supported IDEs and more details, see the "Exporting to IDEs" section of the [ModusToolbox&trade; software user guide](https://www.infineon.com/ModusToolboxUserGuide) (locally available at *{ModusToolbox&trade; software install directory}/docs_{version}/mtb_user_guide.pdf*).
 
 </details>
-
 
 ## Operation
 
@@ -211,48 +236,49 @@ For more details, see the "Exporting to IDEs" section of the ModusToolbox&trade;
 
     <details><summary><b>Using CLI</b></summary>
 
-      From the terminal, execute the `make program` command to build and program the application using the default toolchain to the default target. You can specify a target and toolchain manually:
+      From the terminal, execute the `make program` command to build and program the application using the default toolchain to the default target. The default toolchain is specified in the application's Makefile but you can override this value manually::
 
       ```
-      make program TARGET=<BSP> TOOLCHAIN=<toolchain>
+      make program TOOLCHAIN=<toolchain>
       ```
 
       Example:
 
       ```
-      make program TARGET=CY8CKIT-062S2-43012 TOOLCHAIN=GCC_ARM
+      make program TOOLCHAIN=GCC_ARM
       ```
 
-      **Note**:  Before building the application, ensure that the *deps* folder contains the BSP file (*TARGET_xxx.lib*) corresponding to the TARGET. Execute the `make getlibs` command to fetch the BSP contents before building the application.
+      **Note**:  Before building the application, ensure that the *bsps* folder contains the BSP files in *TARGET_APP_xxx* folder. If the files ae missing use the library manager to add the same. You can invoke the Library Manager GUI tool from the terminal using `make library-manager` command or use the Library Manager CLI tool "library-manager-cli" to add/change the BSP.
+
 
      </details>
 
       After programming, the application starts automatically. Observe the messages on the UART terminal, and wait for the device to make all the required connections.
 
-#### Test using the CySmart mobile app
+#### Test using the LightBlue mobile app
 
 1. Turn ON Bluetooth&reg; on your Android or iOS device.
 
-2. Launch the CySmart app.
+2. Launch the LightBlue&reg; app.
 
 3. Press the reset switch on the kit to start BLuetooth&reg; LE advertisements. The red LED (LED1) starts blinking to indicate that advertising has started. Advertising will stop after 120 seconds if a connection has not been established.
 
-4. Swipe down on the CySmart app home screen to start scanning for BLuetooth&reg; LE peripherals; your device appears on the CySmart app home screen. Select your device to establish a BLuetooth&reg; LE connection (see Figure 2). Once the connection is established, the user LED turns to 'always ON' state.
+4. Swipe down on the LightBlue&reg; app home screen to start scanning for BLuetooth&reg; LE peripherals; your device appears on the LightBlue&reg; app home screen. Select your device to establish a BLuetooth&reg; LE connection (see Figure 2). Once the connection is established, the user LED turns to 'always ON' state.
 
-   **Figure 2. CySmart app device discovery**
+   **Figure 2. LightBlue&reg; app device discovery**
 
-   ![](images/figure2.png)
+   ![](images/figure2.jpg)
 
-5. Select Battery Service (see Figure 3) from the carousel view to check the battery levels. Tap **Start Notify** to get notifications of the changing battery level:
+5. Select Battery Level characteristic under Battery Service (see Figure 3) from the carousel view to check the battery levels. Tap **SUBSCRIBE** to get notifications of the changing battery level:
 
-   **Figure 3. CySmart Battery Service app**
+   **Figure 3. LightBlue&reg; Battery Service app**
 
-   ![](images/figure3.png)
+   ![](images/figure3.jpg)
 
 
    **Figure 4. Battery level**
 
-   ![](images/figure4.png)
+   ![](images/figure4.jpg)
 
 6. Use the KitProg3 COM port to view the Bluetooth&reg; stack and application trace messages in the terminal window. Note the application version.
 
@@ -265,13 +291,13 @@ For more details, see the "Exporting to IDEs" section of the ModusToolbox&trade;
 
 The app also supports OTA over Bluetooth&reg; LE. A peer app is used to push an updated image to the device. It can be downloaded from the [OTA peer apps repo](https://github.com/Infineon/btsdk-peer-apps-ota). This example uses the Windows app for pushing an OTA image.
 
-Once you have programmed the app by following the steps in the [Battery Service section](#Battery-service) , you will see the app version as `3.0.0` in the terminal logs as shown in Figure 5.
+Once you have programmed the app by following the steps in the [Battery Service section](#battery-service) , you will see the app version as `4.0.0` in the terminal logs as shown in Figure 5.
 
 For the OTA update, do the following changes to the app:
 
-1. Change the update rate of the battery level by modifying the define `BATTERY_LEVEL_CHANGE` to `4`. This shows that the battery drains at double the rate after the OTA update. This is also shown in the terminal logs as well as CySmart app graphic.
+1. Change the update rate of the battery level by modifying the define `BATTERY_LEVEL_CHANGE` to `4`. This shows that the battery drains at double the rate after the OTA update. This is also shown in the terminal logs as well as LightBlue&reg; app graphic.
 
-2. Update the app version number in the Makefile by changing the `MAJOR VERSION`, `MINOR VERSION`, and `VERSION BUILD`. In this example, update the version to 3.1.0 by modifying `MINOR VERSION` to `1`.
+2. Update the app version number in the Makefile by changing the `MAJOR VERSION`, `MINOR VERSION`, and `VERSION BUILD`. In this example, update the version to 4.1.0 by modifying `MINOR VERSION` to `1`.
 
 3. Build the app, but **DO NOT PROGRAM**. This version of the app will be used to push to the device via the peer Windows app *WsOtaUpgrade.exe*.
 
@@ -304,11 +330,11 @@ For the OTA update, do the following changes to the app:
 
    ![](images/figure9.png)
 
-   Once the download is completed, the device will reboot. To manually initiate the reboot, set `reboot_at_end` to `0`. On reboot, MCUboot either copies the new image over to the primary slot or swaps the images in primary and secondary slots depending upon the configuration (see [Building and programming MCUboot](#Building-and-programming-MCUboot)), and runs the application.
+   Once the download is completed, the device will reboot. To manually initiate the reboot, set `reboot_at_end` to `0` in the function *app_bt_initialize_default_values()*. On reboot, MCUboot either copies the new image over to the primary slot or swaps the images in primary and secondary slots based upon whether the overwrite or swap based flashmap is used and launches the application.
 
    If the new image is not validated in runtime, on the next reboot, MCUboot reverts to the previously validated image. The validation is done by calling the `cy_ota_storage_validated()` API. You can turn off the validation requirement by setting `validate after reboot = 0` in `ota_agent_parameters`.
 
-   **Note:** The revert operation will happen only if swap upgrade is enabled by setting `SWAP_UPGRADE = 1` as described in [Building and programming MCUboot](#Building-and-programming-MCUboot), and `validate after reboot = 1` in `ota_agent_parameters`. If not, the image will be validated after download by the library and marked permanent. Thus, revert will not happen because the requirement for the updated app to call `cy_ota_storage_validated()` is waived off.
+   **Note:** The revert operation will happen only if swap based flashmap is used and `validate after reboot = 1` is set in `ota_agent_parameters`. If not, the image will be validated after download by the library and marked permanent. Thus, revert will not happen because the requirement for the updated app to call `cy_ota_storage_validated()` is waived off.
 
    **Figure 10. MCUboot reboot on download finish**
 
@@ -317,20 +343,16 @@ For the OTA update, do the following changes to the app:
 
 7. Observe the terminal for upgrade logs. Notice the updated app version in the terminal log once the app is launched by MCUboot on a successful update.
 
-   **Figure 11. MCUboot upgrading to the latest OTA image**
+8. Once the upgrade is done, follow the steps mentioned in [Test using the LightBlue&reg; mobile app section](#test-using-the-lightblue-mobile-app). Notice that now the rate of change of battery level is faster (reduces by 4) both in the terminal logs as well as the LightBlue&reg; app.
+
+   **Figure 11. Updated app with faster rate of change of battery level**
 
    ![](images/figure11.png)
-
-8. Once the upgrade is done, follow the steps mentioned in [Test using the CySmart mobile app section](#Test-using-the-CySmart-mobile-app). Notice that now the rate of change of battery level is faster (reduces by 4) both in the terminal logs as well as the CySmart app.
-
-   **Figure 12. Updated app with faster rate of change of battery level**
-
-   ![](images/figure12.png)
 
 
 ### OTA revert
 
-To test the revert feature of MCUboot, you need to send a 'bad' image as the v3.2.0 OTA update. The bad image used in this example does not call `cy_ota_storage_validated()`; instead it prints the banner and issues a soft reset. Upon reboot, MCUboot reverts the primary image back to the v3.1.0 'good' image.
+To test the revert feature of MCUboot, you need to send a 'bad' image as the v4.2.0 OTA update. The bad image used in this example does not call `cy_ota_storage_validated()`; instead it prints the banner and issues a soft reset. Upon reboot, MCUboot reverts the primary image back to the v4.1.0 'good' image.
 
 1. Edit the *Makefile* and add `TEST_REVERT` to the `Defines` variable to test the revert functionality:
 
@@ -342,18 +364,18 @@ To test the revert feature of MCUboot, you need to send a 'bad' image as the v3.
 
 3. Use *WsOtaUpgrade.exe* to push the OTA image to the device as done in steps **3, 4, and 5** of the [OTA Service](#ota-service) section.
 
-4. After a reset, MCUboot will now find this new v3.2.0 image and update to it. After the update, the banner is printed on the terminal and a soft reset is issued. Upon reset, MCUboot starts reverting to the v3.1.0 'good' image.
+4. After a reset, MCUboot will now find this new v4.2.0 image and update to it. After the update, the banner is printed on the terminal and a soft reset is issued. Upon reset, MCUboot starts reverting to the v4.1.0 'good' image.
 
-   **Figure 13. MCUboot reverting the image**
+   **Figure 12. MCUboot reverting the image**
 
-   ![](images/figure13.png)
+   ![](images/figure12.png)
 
 
 ## Debugging
 
-You can debug the example to step through the code. In the IDE, use the **\<Application Name> Debug (KitProg3_MiniProg4)** configuration in the **Quick Panel**. For more details, see the "Program and debug" section in the [Eclipse IDE for ModusToolbox&trade; software user guide](https://www.cypress.com/MTBEclipseIDEUserGuide).
+You can debug the example to step through the code. In the IDE, use the **\<Application Name> Debug (KitProg3_MiniProg4)** configuration in the **Quick Panel**. For more details, see the "Program and debug" section in the [Eclipse IDE for ModusToolbox&trade; software user guide](https://www.infineon.com/MTBEclipseIDEUserGuide).
 
-**Note:** **(Only while debugging)** On the CM4 CPU, some code in `main()` may execute before the debugger halts at the beginning of `main()`. This means that some code executes twice - once before the debugger stops execution, and again after the debugger resets the program counter to the beginning of `main()`. See [KBA231071](https://community.cypress.com/docs/DOC-21143) to learn about this and for the workaround.
+**Note:** **(Only while debugging)** On the CM4 CPU, some code in `main()` may execute before the debugger halts at the beginning of `main()`. This means that some code executes twice - once before the debugger stops execution, and again after the debugger resets the program counter to the beginning of `main()`. See [KBA231071](https://community.infineon.com/t5/Knowledge-Base-Articles/PSoC-6-MCU-Code-in-main-executes-before-the-debugger-halts-at-the-first-line-of/ta-p/253856) to learn about this and for the workaround.
 
 
 ## Design and implementation
@@ -368,9 +390,9 @@ The code example has two main services:
 
    The OTA firmware upgrade service enables updating the application image remotely. A peer app on Windows/Android/iOS can be used to push an OTA update to the device. The app downloads and writes the image to the secondary slot. On the next reboot, MCUboot copies the new image over to the primary slot and runs the application. If the new image is not validated in runtime, on the next reboot, MCUboot reverts to the previously validated image.
 
-   **Figure 14. OTA transfer sequence**
+   **Figure 13. OTA transfer sequence**
 
-   ![](images/figure14.png)
+   ![](images/figure13.png)
 
    **Note:** Thin lines in this diagram correspond to the messages sent using the Control Point Characteristic.
    Thick lines indicate messages sent using the Data Characteristic.
@@ -421,26 +443,25 @@ For a better performance, it is recommended that the downloader negotiates the l
 This section explains the ModusToolbox&trade; software resources and their configuration as used in this code example. Note that all the configuration explained in this section has already been done in the code example. ModusToolbox&trade; software stores the configuration settings of the application in the *design.modus* file. This file is used by the graphical configurators, which generate the configuration firmware. This firmware is stored in the application’s *GeneratedSource* folder.
 
 - **Device configurator:** The device configurator is used to enable/configure the peripherals and the pins used in the application. See the
-[Device configurator guide](https://www.cypress.com/ModusToolboxDeviceConfig).
+[Device configurator guide](https://www.infineon.com/ModusToolboxDeviceConfig).
 
-- **Bluetooth&reg; configurator:** The Bluetooth&reg; configurator is used for generating/modifying the Bluetooth&reg; LE GATT database. See the [Bluetooth configurator guide](https://www.cypress.com/ModusToolboxBLEConfig).
+- **Bluetooth&reg; configurator:** The Bluetooth&reg; configurator is used for generating/modifying the Bluetooth&reg; LE GATT database. See the [Bluetooth configurator guide](https://www.infineon.com/ModusToolboxBLEConfig).
 
 ## Related resources
 
 Resources  | Links
 -----------|----------------------------------
-Application notes  | [AN228571](https://www.cypress.com/AN228571) – Getting started with PSoC&trade; 6 MCU on ModusToolbox&trade; software <br>  [AN215656](https://www.cypress.com/AN215656) – PSoC&trade; 6 MCU: Dual-CPU system design <br> [AN221774](https://www.cypress.com/AN221774) – Getting started with PSoC&trade; 6 MCU on PSoC&trade; Creator <br> [AN210781](https://www.cypress.com/AN210781) – Getting started with PSoC&trade; 6 MCU with Bluetooth&reg; Low Energy (BLE) Connectivity on PSoC&trade; Creator
-Code examples  | [Using ModusToolbox&trade; software](https://github.com/Infineon/Code-Examples-for-ModusToolbox-Software) on GitHub <br> [Using PSoC&trade; Creator](https://www.cypress.com/documentation/code-examples/psoc-345-code-examples)
+Application notes  | [AN228571](https://www.infineon.com/AN228571) – Getting started with PSoC&trade; 6 MCU on ModusToolbox&trade; software <br>  [AN215656](https://www.infineon.com/AN215656) – PSoC&trade; 6 MCU: Dual-CPU system design <br> [AN221774](https://www.infineon.com/AN221774) – Getting started with PSoC&trade; 6 MCU on PSoC&trade; Creator <br> [AN210781](https://www.infineon.com/AN210781) – Getting started with PSoC&trade; 6 MCU with Bluetooth&reg; Low Energy (BLE) Connectivity on PSoC&trade; Creator
+Code examples  | [Using ModusToolbox&trade; software](https://github.com/Infineon/Code-Examples-for-ModusToolbox-Software) on GitHub <br> [Using PSoC&trade; Creator](https://www.infineon.com/documentation/code-examples/psoc-345-code-examples)
 Device documentation | [PSoC&trade; 6 MCU datasheets](https://www.cypress.com/search/all?f[0]=meta_type%3Atechnical_documents&f[1]=resource_meta_type%3A575&f[2]=field_related_products%3A114026) <br> [PSoC&trade; 6 technical reference manuals](https://www.cypress.com/search/all/PSoC%206%20Technical%20Reference%20Manual?f[0]=meta_type%3Atechnical_documents&f[1]=resource_meta_type%3A583)
 Development kits | Visit www.cypress.com/microcontrollers-mcus-kits and use the options in the **Select your kit** section to filter kits by *Product family* or *Features*.
-Libraries on GitHub  | [mtb-pdl-cat1](https://github.com/infineon/mtb-pdl-cat1) – PSoC&trade; 6 peripheral driver library (PDL)  <br> [mtb-hal-cat1](https://github.com/infineon/mtb-hal-cat1) – Hardware abstraction layer (HAL) library <br> [retarget-io](https://github.com/infineon/retarget-io) – Utility library to retarget STDIO messages to a UART port <br> [freeRTOS](https://github.com/Infineon/freertos)- freeRTOS library and docs <br> [bluetooth-freeRTOS](https://github.com/Infineon/bluetooth-freertos) - WICED Bluetooth&reg;/Bluetooth&reg; LE host stack solution
-
-Middleware on GitHub  | [capsense](https://github.com/infineon/capsense) – CAPSENSE&trade; library and documents <br> [psoc6-middleware](https://github.com/Infineon/modustoolbox-software#psoc-6-middleware-libraries) – Links to all PSoC&trade; 6 MCU middleware
-Tools  | [Eclipse IDE for ModusToolbox&trade; software](https://www.cypress.com/modustoolbox) – ModusToolbox&trade; software is a collection of easy-to-use software and tools enabling rapid development with Infineon MCUs, covering applications from embedded sense and control to wireless and cloud-connected systems using AIROC&trade; Wi-Fi and Bluetooth® connectivity devices. 
+Libraries on GitHub  | [mtb-pdl-cat1](https://github.com/Infineon/mtb-pdl-cat1) – PSoC&trade; 6 peripheral driver library (PDL)  <br> [mtb-hal-cat1](https://github.com/Infineon/mtb-hal-cat1) – Hardware abstraction layer (HAL) library <br> [retarget-io](https://github.com/Infineon/retarget-io) – Utility library to retarget STDIO messages to a UART port <br> [freeRTOS](https://github.com/Infineon/freertos)- freeRTOS library and docs <br> [bluetooth-freeRTOS](https://github.com/Infineon/bluetooth-freertos) - WICED Bluetooth&reg;/Bluetooth&reg; LE host stack solution
+Middleware on GitHub  | [capsense](https://github.com/Infineon/capsense) – CAPSENSE&trade; library and documents <br> [psoc6-middleware](https://github.com/Infineon/modustoolbox-software#psoc-6-middleware-libraries) – Links to all PSoC&trade; 6 MCU middleware
+Tools  | [Eclipse IDE for ModusToolbox&trade; software](https://www.infineon.com/modustoolbox) – ModusToolbox&trade; software is a collection of easy-to-use software and tools enabling rapid development with Infineon MCUs, covering applications from embedded sense and control to wireless and cloud-connected systems using AIROC&trade; Wi-Fi and Bluetooth® connectivity devices. 
 
 ## Document history
 
-Document title: *CE230299* - *Battery server*
+Document title: *CE230299* - *Bluetooth&reg; LE Battery server*
 
 
  Version | Description of change
@@ -450,12 +471,9 @@ Document title: *CE230299* - *Battery server*
  3.0.0   | Added OTA support, Updated to support  BTStack 3.0
  3.1.0   | Quality of life changes <br> Added support for CY8CEVAL-062S2-LAI-4373M2 kit
  3.2.0   | Update to support new dependency structure
-
-
-<br>
-
-
+ 4.0.0   | Updated to support MTB 3.0 and 4.x BSP's <br> Added support for CY8CEVAL-062S2-MUR-43439M2 and CY8CPROTO-062S3-4343W
 ------
+<br>
 
 © Cypress Semiconductor Corporation, 2020-2021. This document is the property of Cypress Semiconductor Corporation, an Infineon Technologies company, and its affiliates ("Cypress").  This document, including any software or firmware included or referenced in this document ("Software"), is owned by Cypress under the intellectual property laws and treaties of the United States and other countries worldwide.  Cypress reserves all rights under such laws and treaties and does not, except as specifically stated in this paragraph, grant any license under its patents, copyrights, trademarks, or other intellectual property rights.  If the Software is not accompanied by a license agreement and you do not otherwise have a written agreement with Cypress governing the use of the Software, then Cypress hereby grants you a personal, non-exclusive, nontransferable license (without the right to sublicense) (1) under its copyright rights in the Software (a) for Software provided in source code form, to modify and reproduce the Software solely for use with Cypress hardware products, only internally within your organization, and (b) to distribute the Software in binary code form externally to end users (either directly or indirectly through resellers and distributors), solely for use on Cypress hardware product units, and (2) under those claims of Cypress’s patents that are infringed by the Software (as provided by Cypress, unmodified) to make, use, distribute, and import the Software solely for use with Cypress hardware products.  Any other use, reproduction, modification, translation, or compilation of the Software is prohibited.
 <br>

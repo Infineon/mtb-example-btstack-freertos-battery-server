@@ -70,7 +70,7 @@
 #include "cy_log.h"
 #include "stdlib.h"
 #include "ota.h"
-
+#include <inttypes.h>
 /* FreeRTOS header file */
 #include <FreeRTOS.h>
 #include <task.h>
@@ -79,8 +79,8 @@
 #include "cy_ota_api.h"
 #include "ota_context.h"
 
-#ifdef CY_BOOT_USE_EXTERNAL_FLASH
-#include "cy_smif_psoc6.h"
+#ifdef OTA_USE_EXTERNAL_FLASH
+#include "ota_serial_flash.h"
 #endif
 #include "cyhal_wdt.h"
 
@@ -514,17 +514,20 @@ static void app_bt_init(void)
     wiced_result_t result;
 
     /*Initialize QuadSPI if using external flash*/
-#ifdef CY_BOOT_USE_EXTERNAL_FLASH
-    if (0 != psoc6_qspi_init())
+#if defined(OTA_USE_EXTERNAL_FLASH)
+    /* We need to init from every ext flash write
+     * See ota_serial_flash.h
+     */
+    if (CY_RSLT_SUCCESS != ota_smif_initialize())
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR,"psoc6_qspi_init() FAILED!!\r\n");
+        cy_log_msg(CYLF_OTA, CY_LOG_ERR,"QSPI initialization FAILED!!\r\n");
         CY_ASSERT(0 == 1);
     }
     else
     {
         cy_log_msg(CYLF_OTA, CY_LOG_ERR, "successfully Initialized QSPI \r\n");
     }
-#endif /* CY_BOOT_USE_EXTERNAL_FLASH */
+#endif /* OTA_USE_EXTERNAL_FLASH */
 
     printf("\n***********************************************\r\n");
     printf("**Discover device with \"Battery Server\" name*\r\n");
