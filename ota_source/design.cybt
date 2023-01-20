@@ -477,6 +477,8 @@
                     <Property id="DiscoveryMode" value="General"/>
                     <Property id="AdLocalName" value="true"/>
                     <Property id="LocalNameType" value="Complete"/>
+                    <Property id="AdServiceUuid" value="true"/>
+                    <Property id="ServiceUuid" value="{66984d87-8206-44ca-ac8d-2a7ea4ab45f4}"/>
                     <Property id="AdAppearance" value="true"/>
                 </AdvertisementPacket>
             </PeripheralConfiguration>

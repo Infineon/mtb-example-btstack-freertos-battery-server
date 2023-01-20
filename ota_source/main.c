@@ -1,7 +1,7 @@
 /******************************************************************************
 * File Name: main.c
 *
-* Description: This is the source code for the AnyCloud: BLE Battery Server
+* Description: This is the source code for the Bluetooth LE Battery Server
 * Example for ModusToolbox. The Battery Service exposes the Battery Level
 * of the device and comes with support for  OTA update over Bluetooth LE.
 * A peer app on windows/Android/iOS can be used to push OTA update to the
@@ -13,7 +13,7 @@
 * Related Document: See Readme.md
 *
 ********************************************************************************
-* Copyright 2021-2022, Cypress Semiconductor Corporation (an Infineon company) or
+* Copyright 2021-2023, Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
@@ -110,8 +110,8 @@ typedef void (*pfn_free_buffer_t)(uint8_t *);
 /**
  * @brief Update rate of Battery level
  */
-#define BATTERY_LEVEL_UPDATE_MS (1000)
-
+#define BATTERY_LEVEL_UPDATE_MS   (9999u)
+#define BATTERY_LEVEL_UPDATE_FREQ (10000)
 
 /**
  * @brief PWM Duty Cycle of LED's for different states
@@ -143,16 +143,33 @@ typedef enum
 static cyhal_pwm_t adv_led_pwm;
 
 /**
- * @brief Timer Handle for battery level change
+ * @brief FreeRTOS variable to store handle of task created to update and send dummy
+   values of temperature
  */
-static TimerHandle_t batt_level_timer_h;
+TaskHandle_t bas_task_handle;
 
 /**
  * @brief variable to track connection and advertising state
  */
 static app_bt_adv_conn_mode_t app_bt_adv_conn_state = APP_BT_ADV_OFF_CONN_OFF;
 
+/**
+ * @brief Variable for 5 sec timer object
+ */
+static cyhal_timer_t bas_timer_obj;
 
+/**
+ * @brief Configure timer for 5 sec
+ */
+const cyhal_timer_cfg_t bas_timer_cfg =
+    {
+        .compare_value = 0,                    /* Timer compare value, not used */
+        .period = BATTERY_LEVEL_UPDATE_MS, /* Defines the timer period */
+        .direction = CYHAL_TIMER_DIR_UP,       /* Timer counts up */
+        .is_compare = false,                   /* Don't use compare mode */
+        .is_continuous = true,                 /* Run timer indefinitely */
+        .value = 0                             /* Initial value of counter */
+};
 /*******************************************************************************
 *        Function Prototypes
 *******************************************************************************/
@@ -182,10 +199,14 @@ static wiced_bt_dev_status_t  app_bt_management_callback            (wiced_bt_ma
                                                                      wiced_bt_management_evt_data_t *p_event_data);
 static wiced_bt_gatt_status_t app_bt_write_handler                  (wiced_bt_gatt_event_data_t *p_data);
 
-static void                   app_bt_batt_level_timer_cb            (TimerHandle_t cb_params);
 static void                   app_bt_adv_led_update                 (void);
 static void                   app_bt_init                           (void);
 static void                   app_bt_batt_level_init                (void);
+
+/* Task to send notifications with dummy battery values */
+void bas_task(void *pvParam);
+/* HAL timer callback registered when timer reaches terminal count */
+void bas_timer_callb(void *callback_arg, cyhal_timer_event_t event);
 
 /******************************************************************************
  *                          Function Definitions
@@ -205,7 +226,7 @@ static void                   app_bt_batt_level_init                (void);
 static uint8_t *app_bt_alloc_buffer(uint16_t len)
 {
     uint8_t *p = (uint8_t *)malloc(len);
-    cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "%s() len %d alloc %p \r\n", __FUNCTION__,
+    cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "%s() len %d alloc %p \r\n", __FUNCTION__,
                len, p);
     return p;
 }
@@ -225,7 +246,7 @@ static void app_bt_free_buffer(uint8_t *p_data)
 {
     if (p_data != NULL)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "%s()        free:%p \r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "%s()        free:%p \r\n",
                    __FUNCTION__, p_data);
         free(p_data);
     }
@@ -245,7 +266,7 @@ int main()
     cy_rslt_t cy_result;
     wiced_result_t  result;
     cyhal_wdt_t wdt_obj;
-
+    BaseType_t rtos_result;
 
     /* Initialize the board support package */
     cy_result = cybsp_init();
@@ -262,16 +283,40 @@ int main()
                         CY_RETARGET_IO_BAUDRATE);
 
     /* default for all logging to WARNING */
-    cy_log_init(CY_LOG_WARNING, NULL, NULL);
+    cy_log_init(CY_LOG_INFO, NULL, NULL);
 
     /* default for OTA logging to NOTICE */
     cy_ota_set_log_level(CY_LOG_INFO);
 
-    printf("\n==========AnyCloud Example====================\r\n");
-    printf("========Battery Server Application Start========\r\n");
-    printf("================================================\n");
-    printf("Application version: %d.%d.%d\n", APP_VERSION_MAJOR, APP_VERSION_MINOR, APP_VERSION_BUILD);
-    printf("================================================\n\n");
+    /*Initialize QuadSPI if using external flash*/
+#if defined(OTA_USE_EXTERNAL_FLASH)
+    /* We need to init from every ext flash write
+     * See ota_serial_flash.h
+     */
+    if (CY_RSLT_SUCCESS != ota_smif_initialize())
+    {
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR,"QSPI initialization FAILED!!\r\n");
+        CY_ASSERT(0 == 1);
+    }
+#endif /* OTA_USE_EXTERNAL_FLASH */
+
+#ifdef TEST_REVERT
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"======================TESTING REVERT==========================\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"===============================================================\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"===============================================================\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"=========================== Rebooting !!!======================\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"===============================================================\r\n");
+    NVIC_SystemReset();
+#else
+    /* Validate the update so we do not revert on reboot */
+    cy_ota_storage_validated();
+#endif
+
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"==========BTStack FreeRTOS Example====================\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"========Battery Server Application Start========\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"================================================\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"Application version: %d.%d.%d\n", APP_VERSION_MAJOR, APP_VERSION_MINOR, APP_VERSION_BUILD);
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"================================================\n\n");
 
     /* Initialising the HCI UART for Host contol */
     cybt_platform_config_init(&cybsp_bt_platform_cfg);
@@ -283,30 +328,22 @@ int main()
     cyhal_wdt_init(&wdt_obj, cyhal_wdt_get_max_timeout_ms());
     cyhal_wdt_free(&wdt_obj);
 
-#ifdef TEST_REVERT
-    printf("\r\n======================TESTING REVERT==========================\r\n");
-    printf("===============================================================\r\n");
-    printf("===============================================================\r\n");
-    printf("=========================== Rebooting !!!======================\r\n");
-    printf("===============================================================\r\n");
-    NVIC_SystemReset();
-#else
-    /* Validate the update so we do not revert on reboot */
-    cy_ota_storage_validated();
-#endif
-
     /* Register call back and configuration with stack */
     result = wiced_bt_stack_init(app_bt_management_callback, &wiced_bt_cfg_settings);
 
     /* Check if stack initialization was successful */
-    if (WICED_BT_SUCCESS == result)
+    if (WICED_BT_SUCCESS != result)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "Bluetooth Stack Initialization Successful \r\n");
-    }
-    else
-    {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Bluetooth Stack Initialization failed!! \r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Bluetooth Stack Initialization failed!! \r\n");
         CY_ASSERT(0);
+    }
+
+    /*Create battery service task*/
+    rtos_result = xTaskCreate(bas_task, "BAS Task", (configMINIMAL_STACK_SIZE * 4),
+                                NULL, (configMAX_PRIORITIES - 3), &bas_task_handle);
+    if(pdPASS != rtos_result)
+    {
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR,"BAS task creation failed\n");
     }
 
     /* Start the FreeRTOS scheduler */
@@ -322,10 +359,10 @@ int main()
 * Function Description:
 * @brief
 *  This is a Bluetooth stack event handler function to receive management events
-*  from the BLE stack and process as per the application.
+*  from the Bluetooth stack and process as per the application.
 *
-* @param wiced_bt_management_evt_t       BLE event code of one byte length
-* @param wiced_bt_management_evt_data_t  Pointer to BLE management event
+* @param wiced_bt_management_evt_t       Bluetooth LE event code of one byte length
+* @param wiced_bt_management_evt_data_t  Pointer to Bluetooth LE management event
 *                                        structures
 *
 * @return wiced_result_t Error code from WICED_RESULT_LIST or BT_RESULT_LIST
@@ -340,7 +377,7 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
     wiced_bt_ble_advert_mode_t *p_adv_mode = NULL;
     wiced_bt_dev_encryption_status_t *p_status = NULL;
 
-    cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "\r\n%s() Event: (%d) %s\r\n",
+    cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "\r\n%s() Event: (%d) %s\r\n",
                __func__, event, get_bt_event_name(event));
 
     switch (event)
@@ -354,7 +391,7 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
             wiced_bt_set_local_bdaddr((uint8_t *)cy_bt_device_address, BLE_ADDR_PUBLIC);
             /* Bluetooth is enabled */
             wiced_bt_dev_read_local_addr(bda);
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Local Bluetooth Address: ");
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Local Bluetooth Address: ");
             print_bd_address(bda);
 
             /* Perform application-specific initialization */
@@ -363,27 +400,26 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
         }
         else
         {
-            cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Failed to initialize Bluetooth controller and stack \r\n");
+            cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Failed to initialize Bluetooth controller and stack \r\n");
         }
 
         break;
 
     case BTM_USER_CONFIRMATION_REQUEST_EVT:
-        printf("* TM_USER_CONFIRMATION_REQUEST_EVT: Numeric_value = %"PRIu32" *\r",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE,"* TM_USER_CONFIRMATION_REQUEST_EVT: Numeric_value = %"PRIu32" *\r",
                 p_event_data->user_confirmation_request.numeric_value);
         wiced_bt_dev_confirm_req_reply(WICED_BT_SUCCESS, p_event_data->user_confirmation_request.bd_addr);
         result = WICED_BT_SUCCESS;
         break;
 
     case BTM_PASSKEY_NOTIFICATION_EVT:
-        printf("\r\n  PassKey Notification from BDA: ");
-        print_bd_address(p_event_data->user_passkey_notification.bd_addr);
-        printf("PassKey: %"PRIu32" \n", p_event_data->user_passkey_notification.passkey );
+         cy_log_msg(CYLF_DEF, CY_LOG_NOTICE,"PassKey Notification from BDA: ");
+         cy_log_msg(CYLF_DEF, CY_LOG_NOTICE,"PassKey: %"PRIu32" \n", p_event_data->user_passkey_notification.passkey );
         result = WICED_BT_SUCCESS;
         break;
 
     case BTM_PAIRING_IO_CAPABILITIES_BLE_REQUEST_EVT:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  BTM_PAIRING_IO_CAPABILITIES_BLE_REQUEST_EVT\r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "  BTM_PAIRING_IO_CAPABILITIES_BLE_REQUEST_EVT\r\n");
         p_event_data->pairing_io_capabilities_ble_request.local_io_cap = BTM_IO_CAPABILITIES_NONE;
         p_event_data->pairing_io_capabilities_ble_request.oob_data = BTM_OOB_NONE;
         p_event_data->pairing_io_capabilities_ble_request.auth_req = BTM_LE_AUTH_REQ_BOND | BTM_LE_AUTH_REQ_MITM;
@@ -394,7 +430,7 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
         break;
 
     case BTM_PAIRING_COMPLETE_EVT:
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "  Pairing Complete: %d ",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "  Pairing Complete: %d ",
                    p_event_data->pairing_complete.pairing_complete_info.ble.reason);
         result = WICED_BT_SUCCESS;
         break;
@@ -422,30 +458,30 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
 
     case BTM_ENCRYPTION_STATUS_EVT:
         p_status = &p_event_data->encryption_status;
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "  Encryption Status Event for : bd ");
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "  Encryption Status Event for : bd ");
         print_bd_address(p_status->bd_addr);
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "  res: %d \r\n", p_status->result);
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "  res: %d \r\n", p_status->result);
         result = WICED_BT_SUCCESS;
         break;
 
     case BTM_SECURITY_REQUEST_EVT:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  BTM_SECURITY_REQUEST_EVT\r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "  BTM_SECURITY_REQUEST_EVT\r\n");
         wiced_bt_ble_security_grant(p_event_data->security_request.bd_addr,
                                     WICED_BT_SUCCESS);
         result = WICED_BT_SUCCESS;
         break;
 
     case BTM_BLE_CONNECTION_PARAM_UPDATE:
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "BTM_BLE_CONNECTION_PARAM_UPDATE \r\n");
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "ble_connection_param_update.bd_addr: ");
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "BTM_BLE_CONNECTION_PARAM_UPDATE \r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "ble_connection_param_update.bd_addr: ");
         print_bd_address(p_event_data->ble_connection_param_update.bd_addr);
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "ble_connection_param_update.conn_interval       : %d\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "ble_connection_param_update.conn_interval       : %d\r\n",
                    p_event_data->ble_connection_param_update.conn_interval);
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "ble_connection_param_update.conn_latency        : %d\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "ble_connection_param_update.conn_latency        : %d\r\n",
                    p_event_data->ble_connection_param_update.conn_latency);
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "ble_connection_param_update.supervision_timeout : %d\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "ble_connection_param_update.supervision_timeout : %d\r\n",
                   p_event_data->ble_connection_param_update.supervision_timeout);
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "ble_connection_param_update.status              : %d\r\n\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "ble_connection_param_update.status              : %d\r\n\n",
                    p_event_data->ble_connection_param_update.status);
         result = WICED_BT_SUCCESS;
         break;
@@ -454,13 +490,13 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
 
         /* Advertisement State Changed */
         p_adv_mode = &p_event_data->ble_advert_state_changed;
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Advertisement State Change: %s\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Advertisement State Change: %s\r\n",
                    get_bt_advert_mode_name(*p_adv_mode));
 
         if (BTM_BLE_ADVERT_OFF == *p_adv_mode)
         {
             /* Advertisement Stopped */
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Advertisement stopped\r\n");
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Advertisement stopped\r\n");
 
             /* Check connection status after advertisement stops */
             if (battery_server_context.bt_conn_id == 0)
@@ -475,7 +511,7 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
         else
         {
             /* Advertisement Started */
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Advertisement started\r\n");
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Advertisement started\r\n");
             app_bt_adv_conn_state = APP_BT_ADV_ON_CONN_OFF;
         }
 
@@ -485,7 +521,7 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
         break;
 
     default:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "Unhandled Bluetooth Management Event: 0x%x %s\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_INFO, "Unhandled Bluetooth Management Event: 0x%x %s\r\n",
                    event, get_bt_event_name(event));
         break;
     }
@@ -499,7 +535,7 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
  *
  *  Function Description:
  *  @brief  This function handles application level initialization tasks and is
- *          called from the BT management callback once the BLE stack enabled event
+ *          called from the BT management callback once the Bluetooth LE stack enabled event
  *          (BTM_ENABLED_EVT) is triggered This function is executed in the BTM_ENABLED_EVT
  *           management callback.
  *
@@ -513,44 +549,13 @@ static void app_bt_init(void)
     wiced_bt_gatt_status_t status = WICED_BT_GATT_ERROR;
     wiced_result_t result;
 
-    /*Initialize QuadSPI if using external flash*/
-#if defined(OTA_USE_EXTERNAL_FLASH)
-    /* We need to init from every ext flash write
-     * See ota_serial_flash.h
-     */
-    if (CY_RSLT_SUCCESS != ota_smif_initialize())
-    {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR,"QSPI initialization FAILED!!\r\n");
-        CY_ASSERT(0 == 1);
-    }
-    else
-    {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "successfully Initialized QSPI \r\n");
-    }
-#endif /* OTA_USE_EXTERNAL_FLASH */
-
-    printf("\n***********************************************\r\n");
-    printf("**Discover device with \"Battery Server\" name*\r\n");
-    printf("***********************************************\r\n\n");
-
     /* Initialize the PWM used for Advertising LED */
     cy_result = cyhal_pwm_init(&adv_led_pwm, ADV_LED_GPIO, NULL);
 
     /* PWM init failed. Stop program execution */
     if (CY_RSLT_SUCCESS != cy_result)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Advertisement LED PWM Initialization has failed! \r\n");
-        CY_ASSERT(0);
-    }
-
-    /* Initialize the timer used Battery Level */
-    batt_level_timer_h = xTimerCreate("Battery Timer", BATTERY_LEVEL_UPDATE_MS,
-                         pdTRUE, NULL, app_bt_batt_level_timer_cb);
-
-    /* Timer init failed. Stop program execution */
-    if (NULL == batt_level_timer_h)
-    {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Battery Level Timer Initialization has failed! \r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Advertisement LED PWM Initialization has failed! \r\n");
         CY_ASSERT(0);
     }
 
@@ -563,27 +568,118 @@ static void app_bt_init(void)
 
     /* Register with BT stack to receive GATT callback */
     status = wiced_bt_gatt_register(app_bt_gatt_event_callback);
-    cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "GATT event Handler registration status: %s \r\n",
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO, "GATT event Handler registration status: %s \r\n",
                get_bt_gatt_status_name(status));
 
     /* Initialize GATT Database */
     status = wiced_bt_gatt_db_init(gatt_database, gatt_database_len, NULL);
-    cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "GATT database initialization status: %s \r\n",
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO, "GATT database initialization status: %s \r\n",
                get_bt_gatt_status_name(status));
 
-    /* Start Undirected LE Advertisements on device startup.
+    /* Start Undirected Bluetooth LE Advertisements on device startup.
      * The corresponding parameters are contained in 'app_bt_cfg.c' */
     result = wiced_bt_start_advertisements(BTM_BLE_ADVERT_UNDIRECTED_HIGH, 0, NULL);
     if (WICED_BT_SUCCESS != result)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Advertisement cannot start because of error: %d \r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Advertisement cannot start because of error: %d \r\n",
                    result);
         CY_ASSERT(0);
     }
-    /* Start battery level timer */
-    app_bt_batt_level_init();
+
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"***********************************************\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"**Discover device with \"Battery Server\" name*\r\n");
+    cy_log_msg(CYLF_DEF, CY_LOG_INFO,"***********************************************\r\n\n");
+
+}
+/*
+ Function name:
+ bas_timer_callb
+
+ Function Description:
+ @brief  This callback function is invoked on timeout of 1 second timer.
+
+ @param  void*: unused
+ @param cyhal_timer_event_t: unused
+
+ @return void
+ */
+void bas_timer_callb(void *callback_arg, cyhal_timer_event_t event)
+{
+    BaseType_t xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
+    vTaskNotifyGiveFromISR(bas_task_handle, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
+/*
+ Function name:
+ bas_task
+
+ Function Description:
+ @brief  This task updates dummy battery value every time it is notified
+         and sends a notification to the connected peer
+
+ @param  void*: unused
+
+ @return void
+ */
+void bas_task(void *pvParam)
+{
+
+    cy_rslt_t cy_result = CY_RSLT_SUCCESS;
+
+
+
+    /* Initialize the HAL timer used to count seconds */
+    cy_result = cyhal_timer_init(&bas_timer_obj, NC, NULL);
+    if (CY_RSLT_SUCCESS != cy_result)
+    {
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR,"BAS timer init failed !\n");
+    }
+    /* Configure the timer for 5 seconds */
+    cyhal_timer_configure(&bas_timer_obj, &bas_timer_cfg);
+    cy_result = cyhal_timer_set_frequency(&bas_timer_obj, BATTERY_LEVEL_UPDATE_FREQ);
+    if (CY_RSLT_SUCCESS != cy_result)
+    {
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR,"BAS timer set freq failed !\n");
+    }
+    /* Register for a callback whenever timer reaches terminal count */
+    cyhal_timer_register_callback(&bas_timer_obj, bas_timer_callb, NULL);
+    cyhal_timer_enable_event(&bas_timer_obj, CYHAL_TIMER_IRQ_TERMINAL_COUNT, 3, true);
+
+    /* Start battery level timer */
+    app_bt_batt_level_init();
+
+    while(true)
+    {
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        /* Battery level is read from gatt db and is reduced by 2 percent
+        * by default and initialized again to 100 once it reaches 0*/
+        if (0 == app_bas_battery_level[0])
+        {
+            app_bas_battery_level[0] = 100;
+        }
+        else
+        {
+            app_bas_battery_level[0] = app_bas_battery_level[0] - BATTERY_LEVEL_CHANGE;
+        }
+
+        if (battery_server_context.bt_conn_id)
+        {
+            if (app_bas_battery_level_client_char_config[0] & GATT_CLIENT_CONFIG_NOTIFICATION)
+            {
+                wiced_bt_gatt_server_send_notification(battery_server_context.bt_conn_id,
+                                                    HDLC_BAS_BATTERY_LEVEL_VALUE,
+                                                    app_bas_battery_level_len,
+                                                    app_bas_battery_level,NULL);
+                cy_log_msg(CYLF_DEF, CY_LOG_NOTICE,"================================================\r\n");
+                cy_log_msg(CYLF_DEF, CY_LOG_NOTICE,"Sending Notification: Battery level: %u\r\n",
+                        app_bas_battery_level[0]);
+                cy_log_msg(CYLF_DEF, CY_LOG_NOTICE,"================================================\r\n");
+            }
+        }
+    }
+}
 /**
  * Function Name:
  * app_bt_gatt_event_callback
@@ -591,10 +687,10 @@ static void app_bt_init(void)
  * Function Description:
  * @brief  This Function handles the all the GATT events - GATT Event Handler
  *
- * @param event            BLE GATT event type
- * @param p_event_data     Pointer to BLE GATT event data
+ * @param event            Bluetooth LE GATT event type
+ * @param p_event_data     Pointer to Bluetooth LE GATT event data
  *
- * @return wiced_bt_gatt_status_t  BLE GATT status
+ * @return wiced_bt_gatt_status_t  Bluetooth LE GATT status
  */
 static wiced_bt_gatt_status_t app_bt_gatt_event_callback(wiced_bt_gatt_evt_t event,
                                                          wiced_bt_gatt_event_data_t *p_event_data)
@@ -615,14 +711,14 @@ static wiced_bt_gatt_status_t app_bt_gatt_event_callback(wiced_bt_gatt_evt_t eve
         break;
         /* GATT buffer request, typically sized to max of bearer mtu - 1 */
     case GATT_GET_RESPONSE_BUFFER_EVT:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "%s() GATT_GET_RESPONSE_BUFFER_EVT\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "%s() GATT_GET_RESPONSE_BUFFER_EVT\r\n", __func__);
         p_event_data->buffer_request.buffer.p_app_rsp_buffer = app_bt_alloc_buffer(p_event_data->buffer_request.len_requested);
         p_event_data->buffer_request.buffer.p_app_ctxt = (void *)app_bt_free_buffer;
         status = WICED_BT_GATT_SUCCESS;
         break;
         /* GATT buffer transmitted event,  check \ref wiced_bt_gatt_buffer_transmitted_t*/
     case GATT_APP_BUFFER_TRANSMITTED_EVT:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "\r\n\n%s() GATT_APP_BUFFER_TRANSMITTED_EVT.\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "\r\n\n%s() GATT_APP_BUFFER_TRANSMITTED_EVT.\r\n", __func__);
         {
             pfn_free_buffer_t pfn_free = (pfn_free_buffer_t)p_event_data->buffer_xmitted.p_app_ctxt;
 
@@ -635,7 +731,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_event_callback(wiced_bt_gatt_evt_t eve
         break;
 
     default:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, " Unhandled GATT Event \r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_INFO, " Unhandled GATT Event \r\n");
         status = WICED_BT_GATT_SUCCESS;
         break;
     }
@@ -667,9 +763,9 @@ static wiced_bt_gatt_status_t app_bt_connect_event_handler (wiced_bt_gatt_connec
         if (p_conn_status->connected)
         {
             /* Device has connected */
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Connected : BDA ");
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Connected : BDA ");
             print_bd_address(p_conn_status->bd_addr);
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Connection ID '%d'\r\n", p_conn_status->conn_id);
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Connection ID '%d'\r\n", p_conn_status->conn_id);
 
             /* Store the connection ID and peer BD Address */
             battery_server_context.bt_conn_id = p_conn_status->conn_id;
@@ -685,9 +781,9 @@ static wiced_bt_gatt_status_t app_bt_connect_event_handler (wiced_bt_gatt_connec
         else
         {
             /* Device has disconnected */
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Disconnected : BDA ");
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Disconnected : BDA ");
             print_bd_address(p_conn_status->bd_addr);
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Connection ID '%d', Reason '%s'\r\n", p_conn_status->conn_id,
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Connection ID '%d', Reason '%s'\r\n", p_conn_status->conn_id,
                        get_bt_gatt_disconn_reason_name(p_conn_status->reason));
 
             /* Set the connection id to zero to indicate disconnected state */
@@ -697,7 +793,7 @@ static wiced_bt_gatt_status_t app_bt_connect_event_handler (wiced_bt_gatt_connec
             result = wiced_bt_start_advertisements(BTM_BLE_ADVERT_UNDIRECTED_HIGH, 0, NULL);
             if (WICED_BT_SUCCESS != result)
             {
-                cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Advertisement cannot start because of error: %d \r\n",
+                cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Advertisement cannot start because of error: %d \r\n",
                            result);
                 CY_ASSERT(0);
             }
@@ -723,9 +819,9 @@ static wiced_bt_gatt_status_t app_bt_connect_event_handler (wiced_bt_gatt_connec
  * @brief  The callback function is invoked when GATT_ATTRIBUTE_REQUEST_EVT occurs
  *         in GATT Event handler function. GATT Server Event Callback function.
  *
- * @param p_data   Pointer to BLE GATT request data
+ * @param p_data   Pointer to Bluetooth LE GATT request data
  *
- * @return wiced_bt_gatt_status_t  BLE GATT status
+ * @return wiced_bt_gatt_status_t  Bluetooth LE GATT status
  */
 static wiced_bt_gatt_status_t app_bt_server_event_handler (wiced_bt_gatt_event_data_t *p_data)
 {
@@ -737,7 +833,7 @@ static wiced_bt_gatt_status_t app_bt_server_event_handler (wiced_bt_gatt_event_d
     /* Attribute read notification (attribute value internally read from GATT database) */
     case GATT_REQ_READ:
     case GATT_REQ_READ_BLOB:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_READ\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_READ\r\n", __func__);
         status = app_bt_gatt_req_read_handler(p_att_req->conn_id, p_att_req->opcode,
                                               &p_att_req->data.read_req,
                                               p_att_req->len_requested);
@@ -759,7 +855,7 @@ static wiced_bt_gatt_status_t app_bt_server_event_handler (wiced_bt_gatt_event_d
     case GATT_REQ_WRITE:
     case GATT_CMD_WRITE:
     case GATT_CMD_SIGNED_WRITE:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  %s() GATTS_REQ_WRITE\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "  %s() GATTS_REQ_WRITE\r\n", __func__);
         status = app_bt_write_handler(p_data);
         if ((p_att_req->opcode == GATT_REQ_WRITE) && (status == WICED_BT_GATT_SUCCESS))
         {
@@ -770,12 +866,12 @@ static wiced_bt_gatt_status_t app_bt_server_event_handler (wiced_bt_gatt_event_d
         break;
 
     case GATT_REQ_PREPARE_WRITE:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  %s() GATT_REQ_PREPARE_WRITE\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "  %s() GATT_REQ_PREPARE_WRITE\r\n", __func__);
         status = WICED_BT_GATT_SUCCESS;
         break;
 
     case GATT_REQ_EXECUTE_WRITE:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_WRITE_EXEC - nothing to do here.\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_WRITE_EXEC\r\n",
                    __func__);
         wiced_bt_gatt_server_send_execute_write_rsp(p_att_req->conn_id, p_att_req->opcode);
         status = WICED_BT_GATT_SUCCESS;
@@ -783,23 +879,23 @@ static wiced_bt_gatt_status_t app_bt_server_event_handler (wiced_bt_gatt_event_d
 
     case GATT_REQ_MTU:
         /* Application calls wiced_bt_gatt_server_send_mtu_rsp() with the desired mtu */
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_MTU\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_MTU\r\n", __func__);
         status = wiced_bt_gatt_server_send_mtu_rsp(p_att_req->conn_id,
                                                    p_att_req->data.remote_mtu,
                                                    wiced_bt_cfg_settings.p_ble_cfg->ble_max_rx_pdu_size);
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "    Set MTU size to: %d  status: 0x%d\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "    Set MTU size to: %d  status: 0x%d\r\n",
                     p_att_req->data.remote_mtu, status);
         break;
 
     case GATT_HANDLE_VALUE_CONF: /* Value confirmation */
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_CONF\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "  %s() GATTS_REQ_TYPE_CONF\r\n",
                    __func__);
         cy_ota_agent_state_t ota_lib_state;
         cy_ota_get_state(battery_server_context.ota_context, &ota_lib_state);
         if ((ota_lib_state == CY_OTA_STATE_OTA_COMPLETE) && /* Check if we completed the download before rebooting */
             (battery_server_context.reboot_at_end != 0))
         {
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "%s()   RESETTING NOW !!!!\r\n",
+            cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "%s()   RESETTING NOW !!!!\r\n",
                        __func__);
             cy_rtos_delay_milliseconds(1000);
             NVIC_SystemReset();
@@ -812,12 +908,12 @@ static wiced_bt_gatt_status_t app_bt_server_event_handler (wiced_bt_gatt_event_d
         break;
 
     case GATT_HANDLE_VALUE_NOTIF:
-        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "  %s() GATT_HANDLE_VALUE_NOTIF - Client received our notification\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "  %s() GATT_HANDLE_VALUE_NOTIF - Notification Sent\r\n", __func__);
         status = WICED_BT_GATT_SUCCESS;
         break;
 
     default:
-        cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "  %s() Unhandled Event opcode: %d\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_DEBUG, "  %s() Unhandled Event opcode: %d\r\n",
                    __func__, p_att_req->opcode);
         break;
     }
@@ -833,9 +929,9 @@ static wiced_bt_gatt_status_t app_bt_server_event_handler (wiced_bt_gatt_event_d
  *         client device and is invoked GATT Server Event Callback function. This
  *         handles "Write Requests" received from Client device.
  *
- * @param p_write_req   Pointer to BLE GATT write request
+ * @param p_write_req   Pointer to Bluetooth LE GATT write request
  *
- * @return wiced_bt_gatt_status_t  BLE GATT status
+ * @return wiced_bt_gatt_status_t  Bluetooth LE GATT status
  */
 static wiced_bt_gatt_status_t app_bt_write_handler(wiced_bt_gatt_event_data_t *p_data)
 {
@@ -872,17 +968,17 @@ static wiced_bt_gatt_status_t app_bt_write_handler(wiced_bt_gatt_event_data_t *p
  *         to GATT DB.
  *
  * @param attr_handle  GATT attribute handle
- * @param p_val        Pointer to BLE GATT write request value
+ * @param p_val        Pointer to Bluetooth LE GATT write request value
  * @param len          length of GATT write request
  *
- * @return wiced_bt_gatt_status_t  BLE GATT status
+ * @return wiced_bt_gatt_status_t  Bluetooth LE GATT status
  */
 static wiced_bt_gatt_status_t app_bt_set_value(uint16_t attr_handle, uint8_t *p_val,
                                                uint16_t len)
 {
     wiced_bt_gatt_status_t status = WICED_BT_GATT_INVALID_HANDLE;
 
-    cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "%s() handle : 0x%x (%d)\r\n", __func__,
+    cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "%s() handle : 0x%x (%d)\r\n", __func__,
                attr_handle, attr_handle);
 
     for (int i = 0; i < app_gatt_db_ext_attr_tbl_size; i++)
@@ -907,11 +1003,11 @@ static wiced_bt_gatt_status_t app_bt_set_value(uint16_t attr_handle, uint8_t *p_
                 {
                     if (GATT_CLIENT_CONFIG_NOTIFICATION == app_bas_battery_level_client_char_config[0])
                     {
-                        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Battery Server Notifications Enabled \r\n");
+                        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Battery Server Notifications Enabled \r\n");
                     }
                     else
                     {
-                        cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Battery Server Notifications Disabled \r\n");
+                        cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "Battery Server Notifications Disabled \r\n");
                     }
 
                 }
@@ -920,14 +1016,14 @@ static wiced_bt_gatt_status_t app_bt_set_value(uint16_t attr_handle, uint8_t *p_
             {
                 /* Value to write will not fit within the table */
                 status = WICED_BT_GATT_INVALID_ATTR_LEN;
-                cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Invalid attribute length\r\n");
+                cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Invalid attribute length\r\n");
             }
             break;
         }
     }
     if (WICED_BT_GATT_SUCCESS != status)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s() FAILED %d \r\n", __func__, status);
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s() FAILED %d \r\n", __func__, status);
     }
     return status;
 }
@@ -942,12 +1038,12 @@ static wiced_bt_gatt_status_t app_bt_set_value(uint16_t attr_handle, uint8_t *p_
  */
 static void app_bt_batt_level_init(void)
 {
-    if (pdPASS != xTimerStart(batt_level_timer_h, 0u))
+    /* Start the timer */
+    if (CY_RSLT_SUCCESS != cyhal_timer_start(&bas_timer_obj))
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Failed to Start Battery level timer!\r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR,"BAS timer start failed !");
         CY_ASSERT(0);
     }
-    cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "Battery level timer started!\r\n");
 }
 
 /**
@@ -955,7 +1051,7 @@ static void app_bt_batt_level_init(void)
  * app_bt_adv_led_update
  *
  * Function Description :
- *  @brief This function updates the advertising LED state based on BLE advertising/
+ *  @brief This function updates the advertising LED state based on Bluetooth LE advertising/
  *         connection state.
  *
  * @return void
@@ -968,10 +1064,10 @@ static void app_bt_adv_led_update(void)
     cy_result = cyhal_pwm_stop(&adv_led_pwm);
     if (CY_RSLT_SUCCESS != cy_result)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Failed to stop PWM !!\r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Failed to stop PWM !!\r\n");
     }
 
-    /* Update LED state based on BLE advertising/connection state.
+    /* Update LED state based on Bluetooth LE advertising/connection state.
      * LED OFF for no advertisement/connection, LED blinking for advertisement
      * state, and LED ON for connected state  */
     switch (app_bt_adv_conn_state)
@@ -1000,7 +1096,7 @@ static void app_bt_adv_led_update(void)
     /* Check if update to PWM parameters is successful*/
     if (CY_RSLT_SUCCESS != cy_result)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Failed to set duty cycle parameters!!\r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Failed to set duty cycle parameters!!\r\n");
     }
 
     /* Start the advertising led pwm */
@@ -1009,53 +1105,9 @@ static void app_bt_adv_led_update(void)
     /* Check if PWM started successfully */
     if (CY_RSLT_SUCCESS != cy_result)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "Failed to start PWM !!\r\n");
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "Failed to start PWM !!\r\n");
     }
 }
-
-/**
- * Function Name:
- * app_bt_batt_level_timer_cb
- *
- * Function Description :
- * @brief This timer callback function reduces the battery level by predefined
- *         value every second and sends notification to connected battery client.
- *         The decrement value is set by define BATTERY_LEVEL_CHANGE.
- *
- * @param arg  The argument parameter is not used in this callback
- *
- * @return void
- */
-static void app_bt_batt_level_timer_cb(TimerHandle_t cb_params)
-{
-
-    /* Battery level is read from gatt db and is reduced by 2 percent
-     * by default and initialized again to 100 once it reaches 0*/
-    if (0 == app_bas_battery_level[0])
-    {
-        app_bas_battery_level[0] = 100;
-    }
-    else
-    {
-        app_bas_battery_level[0] = app_bas_battery_level[0] - BATTERY_LEVEL_CHANGE;
-    }
-
-    if (battery_server_context.bt_conn_id)
-    {
-        if (app_bas_battery_level_client_char_config[0] & GATT_CLIENT_CONFIG_NOTIFICATION)
-        {
-            cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, " size of buffer: %d \r\n",
-                       app_bas_battery_level_len);
-            wiced_bt_gatt_server_send_notification(battery_server_context.bt_conn_id,
-                                                   HDLC_BAS_BATTERY_LEVEL_VALUE,
-                                                   app_bas_battery_level_len,
-                                                   app_bas_battery_level,NULL);
-            cy_log_msg(CYLF_OTA, CY_LOG_NOTICE, "Sending Notification: Battery level: %u\r\n",
-                       app_bas_battery_level[0]);
-        }
-    }
-}
-
 
 /**
  * Function Name:
@@ -1089,11 +1141,11 @@ static gatt_db_lookup_table_t *app_bt_find_by_handle(uint16_t handle)
  * @brief  This Function Process read request from peer device
  *
  * @param conn_id       Connection ID
- * @param opcode        BLE GATT request type opcode
+ * @param opcode        Bluetooth LE GATT request type opcode
  * @param p_read_req    Pointer to read request containing the handle to read
  * @param len_requested length of data requested
  *
- * @return wiced_bt_gatt_status_t  BLE GATT status
+ * @return wiced_bt_gatt_status_t  Bluetooth LE GATT status
  */
 static wiced_bt_gatt_status_t app_bt_gatt_req_read_handler(uint16_t conn_id,
                                                            wiced_bt_gatt_opcode_t opcode,
@@ -1106,7 +1158,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_handler(uint16_t conn_id,
 
     if ((puAttribute = app_bt_find_by_handle(p_read_req->handle)) == NULL)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s()  Attribute not found, Handle: 0x%04x\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s()  Attribute not found, Handle: 0x%04x\r\n",
                     __func__, p_read_req->handle);
         wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, p_read_req->handle,
                                             WICED_BT_GATT_INVALID_HANDLE);
@@ -1114,12 +1166,12 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_handler(uint16_t conn_id,
     }
 
     attr_len_to_copy = puAttribute->cur_len;
-    cy_log_msg(CYLF_OTA, CY_LOG_DEBUG, "%s() conn_id: %d handle:0x%04x offset:%d len:%d\r\n", __func__,
+    cy_log_msg(CYLF_DEF, CY_LOG_NOTICE, "%s() conn_id: %d handle:0x%04x offset:%d len:%d\r\n", __func__,
                conn_id, p_read_req->handle, p_read_req->offset, attr_len_to_copy);
 
     if (p_read_req->offset >= puAttribute->cur_len)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s() offset:%d larger than attribute length:%d\r\n", __func__,
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s() offset:%d larger than attribute length:%d\r\n", __func__,
                    p_read_req->offset, puAttribute->cur_len);
 
         wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, p_read_req->handle,
@@ -1140,11 +1192,11 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_handler(uint16_t conn_id,
  * @brief  Process read-by-type request from peer device
  *
  * @param conn_id       Connection ID
- * @param opcode        BLE GATT request type opcode
+ * @param opcode        Bluetooth LE GATT request type opcode
  * @param p_read_req    Pointer to read request containing the handle to read
  * @param len_requested length of data requested
  *
- * @return wiced_bt_gatt_status_t  BLE GATT status
+ * @return wiced_bt_gatt_status_t  Bluetooth LE GATT status
  */
 static wiced_bt_gatt_status_t app_bt_gatt_req_read_by_type_handler(uint16_t conn_id,
                                                                    wiced_bt_gatt_opcode_t opcode,
@@ -1160,7 +1212,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_by_type_handler(uint16_t conn
 
     if (p_rsp == NULL)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s() No memory, len_requested: %d!!\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s() No memory, len_requested: %d!!\r\n",
                    __func__, len_requested);
 
         wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, attr_handle,
@@ -1180,7 +1232,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_by_type_handler(uint16_t conn
 
         if ((puAttribute = app_bt_find_by_handle(attr_handle)) == NULL)
         {
-            cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s()  found type but no attribute for %d \r\n",
+            cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s()  found type but no attribute for %d \r\n",
                        __func__, last_handle);
             wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, p_read_req->s_handle,
                                                 WICED_BT_GATT_ERR_UNLIKELY);
@@ -1208,7 +1260,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_by_type_handler(uint16_t conn
 
     if (used == 0)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s()  attr not found  start_handle: 0x%04x  "
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s()  attr not found  start_handle: 0x%04x  "
                    "end_handle: 0x%04x  Type: 0x%04x\r\n",
                    __func__, p_read_req->s_handle, p_read_req->e_handle,
                    p_read_req->uuid.uu.uuid16);
@@ -1234,11 +1286,11 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_by_type_handler(uint16_t conn
  * @brief  Process write read multi request from peer device
  *
  * @param conn_id       Connection ID
- * @param opcode        BLE GATT request type opcode
+ * @param opcode        Bluetooth LE GATT request type opcode
  * @param p_read_req    Pointer to read request containing the handle to read
  * @param len_requested length of data requested
  *
- * @return wiced_bt_gatt_status_t  BLE GATT status
+ * @return wiced_bt_gatt_status_t  Bluetooth LE GATT status
  */
 static wiced_bt_gatt_status_t app_bt_gatt_req_read_multi_handler(uint16_t conn_id,
                                                                  wiced_bt_gatt_opcode_t opcode,
@@ -1253,7 +1305,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_multi_handler(uint16_t conn_i
 
     if (p_rsp == NULL)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s() No memory len_requested: %d!!\r\n",
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s() No memory len_requested: %d!!\r\n",
                     __func__, len_requested);
         wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, handle,
                                             WICED_BT_GATT_INSUF_RESOURCE);
@@ -1267,7 +1319,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_multi_handler(uint16_t conn_i
         handle = wiced_bt_gatt_get_handle_from_stream(p_read_req->p_handle_stream, xx);
         if ((puAttribute = app_bt_find_by_handle(handle)) == NULL)
         {
-            cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s()  no handle 0x%04x\r\n",
+            cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s()  no handle 0x%04x\r\n",
                        __func__, handle);
             wiced_bt_gatt_server_send_error_rsp(conn_id, opcode, *p_read_req->p_handle_stream,
                                                 WICED_BT_GATT_ERR_UNLIKELY);
@@ -1291,7 +1343,7 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_multi_handler(uint16_t conn_i
 
     if (used == 0)
     {
-        cy_log_msg(CYLF_OTA, CY_LOG_ERR, "%s() no attr found\r\n", __func__);
+        cy_log_msg(CYLF_DEF, CY_LOG_ERR, "%s() no attr found\r\n", __func__);
 
         wiced_bt_gatt_server_send_error_rsp(conn_id, opcode,
                                             *p_read_req->p_handle_stream,

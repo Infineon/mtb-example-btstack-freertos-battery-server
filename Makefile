@@ -7,7 +7,7 @@
 #
 ################################################################################
 # \copyright
-# Copyright 2018-2022, Cypress Semiconductor Corporation (an Infineon company)
+# Copyright 2018-2023, Cypress Semiconductor Corporation (an Infineon company)
 # SPDX-License-Identifier: Apache-2.0
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,19 +40,15 @@ MTB_TYPE=COMBINED
 # To change the target, it is recommended to use the Library manager
 # ('make library-manager' from command line), which will also update Eclipse IDE launch
 # configurations.
-TARGET=CY8CPROTO-062-4343W
+TARGET=CY8CKIT-062S2-43012
 
-# Underscore needed for $(TARGET) directory
-TARGET_UNDERSCORE=$(subst -,_,$(TARGET))
 
-# Core processor
-CORE?=CM4
 
 # Name of application (used to derive name of final linked file).
 #
 # If APPNAME is edited, ensure to update or regenerate launch
 # configurations for your IDE.
-APPNAME=mtb-example-anycloud-ble-battery-server
+APPNAME=mtb-example-btstack-freertos-battery-server
 
 # Name of toolchain to use. Options include:
 #
@@ -141,81 +137,95 @@ PREBUILD=
 # Custom post-build commands to run.
 POSTBUILD=
 
-###############################################################################
-#
-# OTA Setup
-#
-###############################################################################
-
-# Set to 1 to add OTA defines, sources, and libraries (must be used with MCUBoot)
-# NOTE: Extra code must be called from your app to initialize the OTA middleware.
-OTA_SUPPORT=1
-
-# MQTT Support
-OTA_HTTP_SUPPORT=0
-OTA_MQTT_SUPPORT=0
-OTA_BT_SUPPORT=1
-
-# Component for adding platform-specific code
-# ex: source/port_support/mcuboot/COMPONENT_OTA_PSOC_062/flash_qspi/flash_qspi.c
-COMPONENTS+=OTA_PSOC_062
-
-# Set Platform type (added to defines and used when finding the linker script)
-# Ex: PSOC_062_2M, PSOC_062_1M, PSOC_062_512K
-ifeq ($(TARGET), $(filter $(TARGET), APP_CY8CPROTO-062-4343W APP_CY8CKIT-062S2-43012 APP_CY8CEVAL-062S2-LAI-4373M2 APP_CY8CEVAL-062S2-MUR-43439M2))
-OTA_PLATFORM=PSOC_062_2M
-OTA_FLASH_MAP?=$(SEARCH_ota-update)/configs/flashmap/psoc62_2m_ext_swap_single.json
+# NOTE: OTA for CYW20829 is not supported yet
+ifeq ($(TARGET), $(filter $(TARGET), APP_CYW920829M2EVB-01))
+    OTA_SUPPORT=0
+else
+    # Enable OTA by default for other supported kits
+    OTA_SUPPORT=1
 endif
 
-ifeq ($(TARGET), $(filter $(TARGET), APP_CY8CPROTO-062S3-4343W))
-OTA_PLATFORM=PSOC_062_512K
-OTA_FLASH_MAP?=$(SEARCH_ota-update)/configs/flashmap/psoc62_512k_xip_swap_single.json
-endif
-
-# Change the version here or over-ride by setting an environment variable
-# before building the application.
-#
-# export APP_VERSION_MAJOR=2
-#
-OTA_APP_VERSION_MAJOR?=4
-OTA_APP_VERSION_MINOR?=1
-OTA_APP_VERSION_BUILD?=0
+# This code example supports BT transport only
+# Excluding libraries needed for WiFi based transports
+CY_IGNORE+=$(SEARCH_aws-iot-device-sdk-embedded-C)
+CY_IGNORE+=$(SEARCH_aws-iot-device-sdk-port)
+CY_IGNORE+=$(SEARCH_cy-mbedtls-acceleration)
+CY_IGNORE+=$(SEARCH_http-client)
+CY_IGNORE+=$(SEARCH_mqtt)
+CY_IGNORE+=$(SEARCH_secure-sockets)
+CY_IGNORE+=$(SEARCH_wifi-connection-manager)
+CY_IGNORE+=$(SEARCH_lwip)
+CY_IGNORE+=$(SEARCH_lwip-network-interface-integration)
+CY_IGNORE+=$(SEARCH_lwip-freertos-integration)
+CY_IGNORE+=$(SEARCH_mbedtls)
+CY_IGNORE+=$(SEARCH_wifi-host-driver)
+CY_IGNORE+=$(SEARCH_wifi-mw-core)
+CY_IGNORE+=$(SEARCH_whd-bsp-integration)
+CY_IGNORE+=$(SEARCH_wpa3-external-supplicant)
 
 ###############################################################################
 #
-# OTA Functionality support
+# OTA Functionality Set up and support
 #
 ###############################################################################
 ifeq ($(OTA_SUPPORT),1)
+
+    #Select the core for the current application
+    CORE?=CM4
+
+    #Ignore Non-OTA code
+    CY_IGNORE+=./non_ota_source
     # OTA / MCUBoot defines
 
-    # These libs are only needed for WiFi transports
-    CY_IGNORE+=$(SEARCH_aws-iot-device-sdk-embedded-C)
-    CY_IGNORE+=$(SEARCH_aws-iot-device-sdk-port)
-    CY_IGNORE+=$(SEARCH_cy-mbedtls-acceleration)
-    CY_IGNORE+=$(SEARCH_http-client)
-    CY_IGNORE+=$(SEARCH_mqtt)
-    CY_IGNORE+=$(SEARCH_secure-sockets)
-    CY_IGNORE+=$(SEARCH_wifi-connection-manager)
-    CY_IGNORE+=$(SEARCH_lwip)
-    CY_IGNORE+=$(SEARCH_lwip-network-interface-integration)
-    CY_IGNORE+=$(SEARCH_lwip-freertos-integration)
-    CY_IGNORE+=$(SEARCH_mbedtls)
-    CY_IGNORE+=$(SEARCH_wifi-host-driver)
-    CY_IGNORE+=$(SEARCH_wifi-mw-core)
-    CY_IGNORE+=$(SEARCH_whd-bsp-integration)
-    CY_IGNORE+=$(SEARCH_wpa3-external-supplicant)
+    # Defines to enable OTA over HTTP,MQTT and BT
+    # We support BT for this Application
+    OTA_HTTP_SUPPORT=0
+    OTA_MQTT_SUPPORT=0
+    OTA_BT_SUPPORT=1
+
+    # Component for adding platform-specific code
+    # ex: source/port_support/mcuboot/COMPONENT_OTA_PSOC_062/flash_qspi/flash_qspi.c
+    COMPONENTS+=OTA_PSOC_062
+
+    # Set Platform type and OTA flash map (added to defines and used when finding the linker script)
+    # Ex: PSOC_062_2M, PSOC_062_1M, PSOC_062_512K
+    ifeq ($(TARGET), $(filter $(TARGET), APP_CY8CPROTO-062-4343W APP_CY8CKIT-062S2-43012 APP_CY8CEVAL-062S2-LAI-4373M2 APP_CY8CEVAL-062S2-MUR-43439M2))
+        OTA_PLATFORM=PSOC_062_2M
+        OTA_FLASH_MAP?=$(SEARCH_ota-update)/configs/flashmap/psoc62_2m_ext_swap_single.json
+    else ifeq ($(TARGET), APP_CY8CKIT-062-BLE)
+        OTA_PLATFORM=PSOC_062_1M
+        COMPONENTS+=CM0P_BLESS_OTA
+        DISABLE_COMPONENTS+=CM0P_BLESS
+        OTA_FLASH_MAP?=$(SEARCH_ota-update)/configs/flashmap/psoc62_1m_cm0_int_swap_single.json
+    else ifeq ($(TARGET), $(filter $(TARGET), APP_CY8CPROTO-063-BLE APP_CYBLE-416045-EVAL))
+        OTA_PLATFORM=PSOC_063_1M
+        COMPONENTS+=CM0P_BLESS_OTA
+        DISABLE_COMPONENTS+=CM0P_BLESS
+        OTA_FLASH_MAP?=$(SEARCH_ota-update)/configs/flashmap/psoc63_1m_cm0_int_swap_single.json
+    else ifeq ($(TARGET), $(filter $(TARGET), APP_CY8CPROTO-062S3-4343W))
+        OTA_PLATFORM=PSOC_062_512K
+        OTA_FLASH_MAP?=$(SEARCH_ota-update)/configs/flashmap/psoc62_512k_xip_swap_single.json
+    endif
+
+    # Change the Application version here or over-ride by setting an environment variable
+    # before building the application.
+    #
+    # export APP_VERSION_MAJOR=2
+    #
+    OTA_APP_VERSION_MAJOR?=5
+    OTA_APP_VERSION_MINOR?=0
+    OTA_APP_VERSION_BUILD?=0
 
 	# Build location local to this root directory.
 	CY_BUILD_LOC:=./build
-	
+
 	# MCUBootApp header is added during signing step in POSTBUILD (sign_script.bash)
     MCUBOOT_HEADER_SIZE=0x400
-    
+
     # Internal and external flash erased values used during signing step in POSTBUILD (sign_script.bash)
     CY_INTERNAL_FLASH_ERASE_VALUE=0x00
     CY_EXTERNAL_FLASH_ERASE_VALUE=0xFF
-    
+
     # Application MUST provide a flash map
     ifneq ($(MAKECMDGOALS),getlibs)
     ifneq ($(MAKECMDGOALS),get_app_info)
@@ -226,7 +236,7 @@ ifeq ($(OTA_SUPPORT),1)
     endif
     endif
 
-	# For testing SWAP / REVERT 
+	# For testing SWAP / REVERT
     ifeq ($(TEST_SWAP_SETUP),1)
         DEFINES+=TEST_SWAP_SETUP=1
     endif
@@ -268,11 +278,11 @@ ifeq ($(OTA_SUPPORT),1)
         # That we need to turn off XIP and enter critical section when accessing SMIF.
         #  NOTE: CYW920829M2EVB-01 does not need this.
         CY_XIP_SMIF_MODE_CHANGE=1
-    
+
         # Since we are running hybrid (some in RAM, some in External FLash),
         #   we need to override the WEAK functions in CYHAL
         DEFINES+=CYHAL_DISABLE_WEAK_FUNC_IMPL=1
-    
+
     endif # USE_XIP
 
     ifeq ($(FLASH_AREA_IMG_1_SECONDARY_DEV_ID),FLASH_DEVICE_INTERNAL_FLASH)
@@ -289,7 +299,7 @@ ifeq ($(OTA_SUPPORT),1)
         APP_VERSION_MAJOR=$(OTA_APP_VERSION_MAJOR)\
         APP_VERSION_MINOR=$(OTA_APP_VERSION_MINOR)\
         APP_VERSION_BUILD=$(OTA_APP_VERSION_BUILD)
-    
+
     ###################################
     # The Defines from the flashmap.mk
     ###################################
@@ -323,14 +333,18 @@ ifeq ($(OTA_SUPPORT),1)
     ifeq ($(USE_EXTERNAL_FLASH),1)
         DEFINES+=OTA_USE_EXTERNAL_FLASH=1
     endif
-    
+
     ifeq ($(CY_RUN_CODE_FROM_XIP),1)
         DEFINES+=CY_RUN_CODE_FROM_XIP=1
     endif
-    
+
     ifeq ($(CY_XIP_SMIF_MODE_CHANGE),1)
         DEFINES+=CY_XIP_SMIF_MODE_CHANGE=1
     endif
+    
+    ##################################
+    # Additional / custom linker flags.
+    ##################################
 
     # This section needs to be before finding LINKER_SCRIPT_WILDCARD as we need the extension defined
     ifeq ($(TOOLCHAIN),GCC_ARM)
@@ -351,7 +365,7 @@ ifeq ($(OTA_SUPPORT),1)
     else
     ifeq ($(TOOLCHAIN),ARM)
         CY_ELF_TO_HEX=$(MTB_TOOLCHAIN_ARM__BASE_DIR)/bin/fromelf
-        CY_ELF_TO_HEX_OPTIONS="--i32 --output"
+        CY_ELF_TO_HEX_OPTIONS="--i32combined --output"
         CY_ELF_TO_HEX_FILE_ORDER="hex_first"
         CY_TOOLCHAIN=GCC
         CY_TOOLCHAIN_LS_EXT=sct
@@ -361,44 +375,51 @@ ifeq ($(OTA_SUPPORT),1)
     endif #ARM
     endif #IAR
     endif #GCC_ARM
-    
+
     # Find Linker Script using wildcard
     # Directory within ota-upgrade library
     OTA_LINKER_SCRIPT_BASE_DIR=$(SEARCH_ota-update)/platforms/$(OTA_PLATFORM)/linker_scripts/COMPONENT_$(CORE)/TOOLCHAIN_$(TOOLCHAIN)/ota
-    
-    ifeq ($(CY_RUN_CODE_FROM_XIP),1)
-        OTA_LINKER_SCRIPT_TYPE=_ota_xip
+
+    ifneq ($(findstring $(OTA_PLATFORM),PSOC_062_1M PSOC_063_1M),)
+        OTA_LINKER_SCRIPT_TYPE=_ota_cm0p_int
     else
-        OTA_LINKER_SCRIPT_TYPE=_ota_int
+	    ifeq ($(CY_RUN_CODE_FROM_XIP),1)
+	        OTA_LINKER_SCRIPT_TYPE=_ota_xip
+	    else
+	        OTA_LINKER_SCRIPT_TYPE=_ota_int
+	    endif
     endif
-    
+
     LINKER_SCRIPT_WILDCARD=$(OTA_LINKER_SCRIPT_BASE_DIR)/*$(OTA_LINKER_SCRIPT_TYPE).$(CY_TOOLCHAIN_LS_EXT)
     LINKER_SCRIPT=$(wildcard $(LINKER_SCRIPT_WILDCARD))
 
     ###################################################################################################
     # OTA POST BUILD scripting
     ###################################################################################################
-    
+
     ######################################
     # Build Location / Output directory
     ######################################
-    
+
     # output directory for use in the sign_script.bash
     OUTPUT_FILE_PATH:=$(CY_BUILD_LOC)/$(TARGET)/$(CONFIG)
-    
+
     CY_HEX_TO_BIN="$(MTB_TOOLCHAIN_GCC_ARM__OBJCOPY)"
     APP_BUILD_VERSION=$(OTA_APP_VERSION_MAJOR).$(OTA_APP_VERSION_MINOR).$(OTA_APP_VERSION_BUILD)
-    
+
     # MCUBoot flash support location
     MCUBOOT_DIR=$(SEARCH_ota-update)/source/port_support/mcuboot
     IMGTOOL_SCRIPT_NAME=imgtool/imgtool.py
     MCUBOOT_SCRIPT_FILE_DIR=$(MCUBOOT_DIR)
-    MCUBOOT_KEY_DIR=$(MCUBOOT_DIR)/keys
+    #Path for keys used for signing, to use your keys replace the keys in the directory
+    #You can also provide path to the directory where you have the keys.
+    MCUBOOT_KEY_DIR=./ota_source/keys
+    #Name of the file containing the private key used for image signing
     MCUBOOT_KEY_FILE=cypress-test-ec-p256.pem
     SIGN_SCRIPT_FILE_PATH=$(SEARCH_ota-update)/scripts/sign_script.bash
-    
-    # Signing is disabled by default
-    # Use "create" for PSoC 062 instead of "sign", and no key path (use a space " " for keypath to keep batch happy)
+
+    # Signing is enabled by default
+    # To disable signing, Use "create" for PSoC 062 instead of "sign", and no key path (use a space " " for keypath to keep batch happy)
     # MCUBoot must also be modified to skip checking the signature, see README for more details.
     # For signing, use "sign" and key path:
     IMGTOOL_COMMAND_ARG=sign
@@ -411,6 +432,14 @@ ifeq ($(OTA_SUPPORT),1)
               $(MCUBOOT_SCRIPT_FILE_DIR) $(IMGTOOL_SCRIPT_NAME) $(IMGTOOL_COMMAND_ARG) $(FLASH_ERASE_SECONDARY_SLOT_VALUE) $(MCUBOOT_HEADER_SIZE)\
               $(MCUBOOT_MAX_IMG_SECTORS) $(APP_BUILD_VERSION) $(FLASH_AREA_IMG_1_PRIMARY_START) $(FLASH_AREA_IMG_1_PRIMARY_SIZE)\
               $(CY_HEX_TO_BIN) $(CY_SIGNING_KEY_ARG)
+
+else #OTA_SUPPORT
+
+    # Ignore the OTA code
+    CY_IGNORE+=./ota_source
+    # This library is only needed for OTA, therefore excluded from the build
+    CY_IGNORE+=$(SEARCH_ota-update)
+
 endif # OTA_SUPPORT
 
 ################################################################################
@@ -496,5 +525,5 @@ ifeq ($(OTA_SUPPORT),1)
     endif # NOT getlibs
     endif # NOT get_app_info
     endif # NOT printlibs
-    
+
 endif # OTA_SUPPORT

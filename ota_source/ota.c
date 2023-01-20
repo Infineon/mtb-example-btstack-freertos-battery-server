@@ -7,7 +7,7 @@
 * Related Document: See Readme.md
 *
 ********************************************************************************
-* Copyright 2021-2022, Cypress Semiconductor Corporation (an Infineon company) or
+* Copyright 2021-2023, Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
@@ -50,6 +50,12 @@
 /* FreeRTOS header file */
 #include <FreeRTOS.h>
 #include <task.h>
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+
+cy_rslt_t              app_bt_ota_init                        (app_context_t *ota);
 
 /*******************************************************************************
 *        Variable Definitions
