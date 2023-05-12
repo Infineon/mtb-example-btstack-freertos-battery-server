@@ -6,9 +6,9 @@ The OTA update feature is enabled by the [anycloud-ota](https://github.com/Infin
 
 [View this README on GitHub.](https://github.com/Infineon/mtb-example-btstack-freertos-battery-server)
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzAyOTkiLCJTcGVjIE51bWJlciI6IjAwMi0zMDI5OSIsIkRvYyBUaXRsZSI6IkJsdWV0b290aCZyZWc7IExFIEJhdHRlcnkgU2VydmVyIHdpdGggT1RBIHVwZGF0ZSIsInJpZCI6ImFtbWwiLCJEb2MgdmVyc2lvbiI6IjUuMC4wIiwiRG9jIExhbmd1YWdlIjoiRW5nbGlzaCIsIkRvYyBEaXZpc2lvbiI6Ik1DRCIsIkRvYyBCVSI6IklDVyIsIkRvYyBGYW1pbHkiOiJCVEFCTEUifQ==)
+[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzAyOTkiLCJTcGVjIE51bWJlciI6IjAwMi0zMDI5OSIsIkRvYyBUaXRsZSI6IkJsdWV0b290aCZyZWc7IExFIEJhdHRlcnkgU2VydmVyIHdpdGggT1RBIHVwZGF0ZSIsInJpZCI6ImFtbWwiLCJEb2MgdmVyc2lvbiI6IjUuMS4wIiwiRG9jIExhbmd1YWdlIjoiRW5nbGlzaCIsIkRvYyBEaXZpc2lvbiI6Ik1DRCIsIkRvYyBCVSI6IklDVyIsIkRvYyBGYW1pbHkiOiJCVEFCTEUifQ==)
 
-**Note:** For the instructions related to non-OTA update-enabled Battery Server, see the non-OTA Battery Server [README.md](./non_ota_source/README.md). OTA update is not supported on the CYW920829M2EVB-01 kit. To use the Battery Server without the OTA update feature on other kits, set `OTA_SUPPORT = 0` in the Makefile.
+**Note:** For the instructions related to non-OTA update-enabled Battery Server, see the non-OTA Battery Server [README.md](./non_ota_source/README.md). OTA update is not supported on the CYW920829M2EVK-02 kit. To use the Battery Server without the OTA update feature on other kits, set `OTA_SUPPORT = 0` in the Makefile.
 
 ## Requirements
 
@@ -38,13 +38,16 @@ The OTA update feature is enabled by the [anycloud-ota](https://github.com/Infin
 
 This example uses the kit’s default configuration. See the respective kit guide to ensure that the kit is configured correctly.
 
+**Note:** The PSoC&trade; 6 Bluetooth&reg; LE pioneer kit (CY8CKIT-062-BLE) and the PSoC&trade; 6 Wi-Fi Bluetooth&reg; pioneer kit (CY8CKIT-062-WIFI-BT) ship with KitProg2 installed. The ModusToolbox&trade; software requires KitProg3. Before using this code example, make sure that the board is upgraded to KitProg3. The tool and instructions are available in the [Firmware Loader](https://github.com/Infineon/Firmware-loader) GitHub repository. If you do not upgrade, you will see an error like "unable to find CMSIS-DAP device" or "KitProg firmware is out of date".
+
+The AIROC&trade; CYW20829 Bluetooth&reg; kit (CYW920829M2EVK-02) ships with KitProg3 version 2.2.1 installed. The ModusToolbox&trade; software requires KitProg3 with latest version 2.40. Before using this code example, make sure that the board is upgraded to KitProg3. The tool and instructions are available in the Firmware Loader GitHub repository. If you do not upgrade, you will see an error such as "unable to find CMSIS-DAP device" or "KitProg firmware is out of date".
+
 ## Software setup
 
-1. To view the battery level in Battery Service, scan the following QR code from your Android mobile device to download the AIROC&trade; Bluetooth&reg; Connect App.
+1. To view the battery level in Battery Service, scan the following QR code from your Android or iOS mobile device to download the AIROC&trade; Bluetooth&reg; Connect App.
 
    ![AppQR](./images/qr.png)
 
-**Note:** AIROC&trade; Bluetooth&reg; Connect App for iOS is coming soon on App Store. If you are using an iPhone, optionally you can download and install Lightblue app. 
 
 2. Install a terminal emulator if you don't have one. Instructions in this document use [Tera Term](https://ttssh2.osdn.jp/index.html.en).
 
@@ -297,7 +300,9 @@ For a list of supported IDEs and more details, see the "Exporting to IDEs" secti
 
    ![](images/figure4.png)
 
-6. Use the KitProg3 COM port to view the Bluetooth&reg; stack and application trace messages in the terminal window. Note the application version. This app version is as per the app version numbers defined in the Makefile `MAJOR VERSION`, `MINOR VERSION`, and `VERSION BUILD`.
+6. A notification is issued every 1 second, and the value is reduced by 2.
+
+7. Use the KitProg3 COM port to view the Bluetooth&reg; stack and application trace messages in the terminal window. Note the application version. This app version is as per the app version numbers defined in the Makefile `MAJOR VERSION`, `MINOR VERSION`, and `VERSION BUILD`.
 
    **Figure 6. Log messages on KitProg3 COM port**
 
@@ -533,6 +538,8 @@ Document title: *CE230299* – *Bluetooth&reg; LE Battery Server with OTA update
  3.2.0   | Update to support new dependency structure
  4.0.0   | Updated to support ModusToolbox&trade; 3.0 and 4.x BSPs <br> Added support for CY8CEVAL-062S2-MUR-43439M2 and CY8CPROTO-062S3-4343W
  5.0.0   | Added Non OTA update-based battery server code <br> Added support for CYW920829M2EVB-01, CY8CKIT-062-BLE, CY8CPROTO-063-BLE  and CYBLE-416045-EVAL
+ 5.1.0   | Update README to reflect the correct BSP version <br> Removed CYW920829M2EVB-01 from supported kits <br> Added support for CYW920829M2EVK-02
+
 <br>
 
 © Cypress Semiconductor Corporation, 2020-2023. This document is the property of Cypress Semiconductor Corporation, an Infineon Technologies company, and its affiliates ("Cypress").  This document, including any software or firmware included or referenced in this document ("Software"), is owned by Cypress under the intellectual property laws and treaties of the United States and other countries worldwide.  Cypress reserves all rights under such laws and treaties and does not, except as specifically stated in this paragraph, grant any license under its patents, copyrights, trademarks, or other intellectual property rights.  If the Software is not accompanied by a license agreement and you do not otherwise have a written agreement with Cypress governing the use of the Software, then Cypress hereby grants you a personal, non-exclusive, nontransferable license (without the right to sublicense) (1) under its copyright rights in the Software (a) for Software provided in source code form, to modify and reproduce the Software solely for use with Cypress hardware products, only internally within your organization, and (b) to distribute the Software in binary code form externally to end users (either directly or indirectly through resellers and distributors), solely for use on Cypress hardware product units, and (2) under those claims of Cypress’s patents that are infringed by the Software (as provided by Cypress, unmodified) to make, use, distribute, and import the Software solely for use with Cypress hardware products.  Any other use, reproduction, modification, translation, or compilation of the Software is prohibited.

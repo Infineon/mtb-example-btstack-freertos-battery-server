@@ -138,7 +138,7 @@ PREBUILD=
 POSTBUILD=
 
 # NOTE: OTA for CYW20829 is not supported yet
-ifeq ($(TARGET), $(filter $(TARGET), APP_CYW920829M2EVB-01))
+ifeq ($(TARGET), $(filter $(TARGET), APP_CYW920829M2EVK-02))
     OTA_SUPPORT=0
 else
     # Enable OTA by default for other supported kits
@@ -276,7 +276,7 @@ ifeq ($(OTA_SUPPORT),1)
         # When running from external flash
         # Signal to /source/port_support/serial_flash/ota_serial_flash.c
         # That we need to turn off XIP and enter critical section when accessing SMIF.
-        #  NOTE: CYW920829M2EVB-01 does not need this.
+        #  NOTE: CYW920829M2EVK-02 does not need this.
         CY_XIP_SMIF_MODE_CHANGE=1
 
         # Since we are running hybrid (some in RAM, some in External FLash),
