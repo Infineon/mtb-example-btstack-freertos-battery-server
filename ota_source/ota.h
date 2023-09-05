@@ -57,7 +57,7 @@ extern app_context_t battery_server_context;
 /*******************************************************************************
  * Function prototype
  ******************************************************************************/
-wiced_bt_gatt_status_t app_bt_ota_write_handler(wiced_bt_gatt_event_data_t *p_data);
+wiced_bt_gatt_status_t app_bt_ota_write_handler(wiced_bt_gatt_event_data_t *p_data, uint16_t *p_error_handle);
 void app_bt_initialize_default_values(void);
 
 #endif /* #define OTA_H_ */

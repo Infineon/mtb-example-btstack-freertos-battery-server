@@ -88,11 +88,14 @@ cy_ota_network_params_t ota_network_params = {CY_OTA_CONNECTION_UNKNOWN};
  *
  * @return wiced_bt_gatt_status_t  BLE GATT status
  */
-wiced_bt_gatt_status_t app_bt_ota_write_handler(wiced_bt_gatt_event_data_t *p_data)
+wiced_bt_gatt_status_t app_bt_ota_write_handler(wiced_bt_gatt_event_data_t *p_data, 
+                                                uint16_t *p_error_handle)
 {
     wiced_bt_gatt_write_req_t *p_write_req = &p_data->attribute_request.data.write_req;;
     cy_rslt_t cy_result;
     wiced_bt_gatt_status_t status = WICED_BT_GATT_SUCCESS;
+
+    *p_error_handle = p_write_req->handle;
 
     CY_ASSERT(( NULL != p_data ) && (NULL != p_write_req));
 
