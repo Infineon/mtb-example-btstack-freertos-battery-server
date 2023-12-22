@@ -137,14 +137,6 @@ PREBUILD=
 # Custom post-build commands to run.
 POSTBUILD=
 
-# NOTE: OTA for CYW20829 is not supported yet
-ifeq ($(TARGET), $(filter $(TARGET), APP_CYW920829M2EVK-02))
-    OTA_SUPPORT=0
-else
-    # Enable OTA by default for other supported kits
-    OTA_SUPPORT=1
-endif
-
 # This code example supports BT transport only
 # Excluding libraries needed for WiFi based transports
 CY_IGNORE+=$(SEARCH_aws-iot-device-sdk-embedded-C)
@@ -189,7 +181,7 @@ ifeq ($(OTA_SUPPORT),1)
 
     # Set Platform type and OTA flash map (added to defines and used when finding the linker script)
     # Ex: PSOC_062_2M, PSOC_062_1M, PSOC_062_512K
-    ifeq ($(TARGET), $(filter $(TARGET), APP_CY8CPROTO-062-4343W APP_CY8CKIT-062S2-43012 APP_CY8CEVAL-062S2-LAI-4373M2 APP_CY8CEVAL-062S2-MUR-43439M2))
+    ifeq ($(TARGET), $(filter $(TARGET), APP_CY8CPROTO-062-4343W APP_CY8CKIT-062S2-43012 APP_CY8CEVAL-062S2-LAI-4373M2 APP_CY8CEVAL-062S2-MUR-43439M2 APP_CY8CEVAL-062S2-CYW43022CUB))
         OTA_PLATFORM=PSOC_062_2M
         OTA_FLASH_MAP?=$(SEARCH_ota-update)/configs/flashmap/psoc62_2m_ext_swap_single.json
     else ifeq ($(TARGET), APP_CY8CKIT-062-BLE)
@@ -276,7 +268,6 @@ ifeq ($(OTA_SUPPORT),1)
         # When running from external flash
         # Signal to /source/port_support/serial_flash/ota_serial_flash.c
         # That we need to turn off XIP and enter critical section when accessing SMIF.
-        #  NOTE: CYW920829M2EVK-02 does not need this.
         CY_XIP_SMIF_MODE_CHANGE=1
 
         # Since we are running hybrid (some in RAM, some in External FLash),
@@ -341,7 +332,7 @@ ifeq ($(OTA_SUPPORT),1)
     ifeq ($(CY_XIP_SMIF_MODE_CHANGE),1)
         DEFINES+=CY_XIP_SMIF_MODE_CHANGE=1
     endif
-    
+
     ##################################
     # Additional / custom linker flags.
     ##################################
