@@ -157,6 +157,7 @@ CY_IGNORE+=$(SEARCH_wifi-host-driver)
 CY_IGNORE+=$(SEARCH_wifi-mw-core)
 CY_IGNORE+=$(SEARCH_whd-bsp-integration)
 CY_IGNORE+=$(SEARCH_wpa3-external-supplicant)
+CY_IGNORE+=$(SEARCH_wifi-resources)
 
 ###############################################################################
 #
